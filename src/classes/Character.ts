@@ -27,7 +27,18 @@ import { random_key } from "@/utilities";
 import { CulturalOriginTable } from "@/data/lifepath_tables";
 import type { setOriginalNode } from "typescript";
 import type { LifepathTable } from "./Lifepath";
-import { Solo as SoloLifepath, Exec as ExecLifepath } from "@/data/role_lifepath_tables";
+import {
+    Exec as ExecLifepath,
+    Fixer as FixerLifepath,
+    Lawman as LawmanLifepath,
+    Media as MediaLifepath,
+    Medtech as MedtechLifepath,
+    Nomad as NomadLifepath,
+    Netrunner as NetrunnerLifepath,
+    Rockerboy as RockerboyLifepath,
+    Solo as SoloLifepath,
+    Tech as TechLifepath,
+} from "@/data/role_lifepath_tables";
 
 
 import { faker } from '@faker-js/faker';
@@ -40,16 +51,16 @@ import EquipmentTables from "@/data/role_equipment";
 
 const role_lifepath_table: Record<Role, LifepathTable | undefined> = {
     Solo: SoloLifepath,
-    Fixer: undefined,
-    Netrunner: undefined,
+    Fixer: FixerLifepath,
+    Netrunner: NetrunnerLifepath,
     Civilian: undefined,
-    Rockerboy: undefined,
-    Tech: undefined,
-    Medtech: undefined,
-    Media: undefined,
+    Rockerboy: RockerboyLifepath,
+    Tech: TechLifepath,
+    Medtech: MedtechLifepath,
+    Media: MediaLifepath,
     Exec: ExecLifepath,
-    Lawman: undefined,
-    Nomad: undefined,
+    Lawman: LawmanLifepath,
+    Nomad: NomadLifepath,
 
 }
 
