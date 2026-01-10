@@ -1,8 +1,14 @@
 /**
  * Edgerunner skill table presets by role.
+ *
+ * Character skill randomization uses these allocations when generating
+ * "street rat" characters so role flavor is preserved.
  */
 import { Role } from '@/data';
 
+/**
+ * Maps each role to a fixed skill-level allocation by skill name.
+ */
 const tables: Record<Role, Record<string, number>> = {
 
     [Role.Rockerboy]: {

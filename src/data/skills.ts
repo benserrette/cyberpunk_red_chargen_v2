@@ -1,9 +1,16 @@
 /**
  * Skill catalog, categories, and required skill list.
+ *
+ * The Character generator uses these arrays to seed Skill instances and to
+ * enforce minimum allocations. UI components consume the categories to group
+ * skills in tables.
  */
 import { Stat } from './stats';
 import { Skill } from '@/classes/Skill';
 
+/**
+ * Skills that every character should have a baseline investment in.
+ */
 const required_skills: string[] = [
   "Athletics",
   "Brawling",
@@ -20,6 +27,9 @@ const required_skills: string[] = [
   "Stealth",
 ]
 
+/**
+ * Skill names grouped by category for display and sorting in the UI.
+ */
 const categories: Record<string, string[]> = {
   "Awareness": [
     "Concentration",
@@ -107,6 +117,9 @@ const categories: Record<string, string[]> = {
   ]
 }
 
+/**
+ * Base skill definitions used to instantiate Skill class instances.
+ */
 const skill_info: { name: string, stat: Stat, x2?: boolean }[] = [
   { name: "Acting", stat: Stat.COOL },
   { name: "Accounting", stat: Stat.INT },
@@ -176,6 +189,9 @@ const skill_info: { name: string, stat: Stat, x2?: boolean }[] = [
   { name: "Wilderness Survival", stat: Stat.INT },
 ];
 
+/**
+ * Materialized Skill instances used throughout the app.
+ */
 const SKILLS_LIST: Skill[] = []
 for (const skill of skill_info) {
   SKILLS_LIST.push(new Skill(skill))

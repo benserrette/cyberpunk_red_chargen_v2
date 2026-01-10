@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+
+/**
+ * Root application shell.
+ *
+ * Hosts the RouterView for the main character generator UI and provides the
+ * shared footer content used across routes.
+ */
 </script>
 
 <template>

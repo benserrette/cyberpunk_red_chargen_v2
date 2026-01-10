@@ -1,5 +1,9 @@
 /**
  * Shared type exports for app data models.
+ *
+ * This module consolidates low-level data shapes so the domain classes
+ * (Character, Weapon, Skill, Lifepath) and UI components can refer to the same
+ * types without coupling directly to each individual data file.
  */
 import type { WeaponAttachment } from "@/data/weapon_attachments";
 import type { AmmoType } from "@/data/ammo_types";

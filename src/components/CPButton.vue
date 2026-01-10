@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * Stylized button with Cyberpunk-themed notch styling.
+ */
 </script>
 
 <style>

@@ -4,6 +4,9 @@ import SkillRow from './SkillRow.vue';
 import { computed } from 'vue';
 import { SkillCategories } from '@/data';
 
+/**
+ * Table of skills for a given category or explicit chunk of skills.
+ */
 const props = defineProps<{
     category?: string;
     char: Character;

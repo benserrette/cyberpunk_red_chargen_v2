@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+
+/**
+ * Styled section title used throughout the character sheet layout.
+ */
 const props = defineProps<{
     bottomBorder?: boolean;
 }>();

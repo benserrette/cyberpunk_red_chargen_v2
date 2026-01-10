@@ -1,5 +1,9 @@
 /**
  * Weapon domain model with ammo and attachment logic.
+ *
+ * Weapon instances are created from static data catalogs in `src/data` and then
+ * mutated at runtime by the Character class or UI controls to reflect ammo
+ * counts, attachments, and quality modifiers.
  */
 import { type WeaponAttachment } from "@/data/weapon_attachments";
 import { type AmmoType } from "@/data/ammo_types";
@@ -9,6 +13,12 @@ import { AmmoTypes } from "@/data/ammo_types";
 import { ClipChart } from "@/data/clip_chart";
 
 
+/**
+ * Models a single weapon instance with ammo inventory and attachments.
+ *
+ * Weapon objects are often created by Character randomization or equipment
+ * tables, then surfaced to Vue components for display/editing.
+ */
 export class Weapon {
     max_attachments = 3;
     name: string;
@@ -31,6 +41,13 @@ export class Weapon {
     // magazines: AmmoType[] = [];
     ammo: Record<string, number> = {};
 
+    /**
+     * Create a new weapon, optionally seeding ammo based on ClipChart defaults.
+     *
+     * The constructor accepts raw weapon data and normalizes variants,
+     * descriptions, and ammo records so downstream UI components can render the
+     * weapon without additional lookups.
+     */
     constructor({
         name,
         skill,
@@ -114,14 +131,25 @@ export class Weapon {
         }
     }
 
+    /**
+     * Generate a normalized key for lookup in ClipChart and other data tables.
+     */
     getKey(): string {
         return this.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     }
+    /**
+     * Select a random ammo type from the weapon's supported ammo list.
+     */
     randomAmmoType(): string {
         const randomIndex = Math.floor(Math.random() * this.ammo_type.length);
         return this.ammo_type[randomIndex];
     }
 
+    /**
+     * Add ammo to the weapon, validating that the ammo exists and is supported.
+     *
+     * Throws if the ammo type is unknown or incompatible with the weapon.
+     */
     addAmmo(ammo_name: string, quantity: number): void {
         const ammo_type = AmmoTypes.find(ammoType => ammoType.name === ammo_name);
         if (!ammo_type) {
@@ -134,6 +162,12 @@ export class Weapon {
         this.ammo[ammo_name] = ammo_quantity + quantity;
     }
 
+    /**
+     * Attach a modification to the weapon, enforcing eligibility and slots.
+     *
+     * The attachment list is used by the UI to render enhancements and by
+     * character logic to keep totals consistent.
+     */
     addAttachment(attachment: WeaponAttachment): void {
         if (attachment.eligible.includes(this.name) === false) {
             console.error({
@@ -152,6 +186,9 @@ export class Weapon {
         }
         this.attachments.push(attachment);
     }
+    /**
+     * Check whether the weapon supports a given ammo type.
+     */
     supportsAmmoType(ammoType: AmmoType | undefined): boolean {
         if (ammoType == undefined) {
             return false;

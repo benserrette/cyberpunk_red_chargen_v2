@@ -1,5 +1,9 @@
 /**
  * Character domain model with randomization and equipment logic.
+ *
+ * The Character class orchestrates data from the static catalogs (`src/data`)
+ * and the supporting models (Skill, Weapon, Lifepath, Cyberware) to build a
+ * complete character that can be rendered and edited by Vue components.
  */
 import {
     Role,
@@ -65,6 +69,12 @@ const Starting_Cash: Record<CreationMethod, number> = {
 type WeaponType = "melee" | "ranged" | "exotic";
 export type CreationMethod = "complete" | "edgerunner" | "street rat";
 
+/**
+ * Represents a full character sheet, including stats, gear, lifepath, and cash.
+ *
+ * Most UI actions mutate a Character instance directly, while generators call
+ * the randomize/reset helpers to seed the model from data tables.
+ */
 export class Character {
     skill_points = 86
     character_rank = "starting"
@@ -103,10 +113,16 @@ export class Character {
     lifepath: Lifepath = new Lifepath();
     role_lifepath: Lifepath | undefined = undefined;
 
+    /**
+     * Create a Character with a creation method and role, then reset state.
+     */
     constructor({ creation_method = "street rat", role = Role.Civilian }: { creation_method?: CreationMethod, role?: Role } = {}) {
         this.reset({ creation_method, role })
     }
 
+    /**
+     * Reset all mutable state to defaults for the given creation method/role.
+     */
     reset({ creation_method, role }: { creation_method: CreationMethod, role: Role }) {
         this.creation_method = creation_method || "street rat";
         this.setRole(role);
@@ -129,6 +145,9 @@ export class Character {
         this.cash = Starting_Cash[this.creation_method];
     }
 
+    /**
+     * Generate a random handle and civilian name using Faker.
+     */
     randomizeName() {
         // let a = faker.word.adjective();
         let n = faker.word.noun();
@@ -138,6 +157,9 @@ export class Character {
         this.notes = `${this.first_name} "${this.handle}" ${this.last_name}`;
     }
 
+    /**
+     * Load role-based equipment from static tables into weapons/armor/gear.
+     */
     getEquipmentFromTable() {
         if (Object.keys(EquipmentTables).includes(this.role)) {
             const table = EquipmentTables[this.role];
@@ -212,9 +234,15 @@ export class Character {
         }
     }
 
+    /**
+     * Return total stat points available for the current character rank.
+     */
     getStatPoints(): number {
         return Stat_Points[this.character_rank];
     }
+    /**
+     * Calculate remaining stat points after current assignments.
+     */
     getRemainingStatPoints(): number {
         let remaining_points = this.getStatPoints();
         for (const stat of Object.keys(this.stats)) {
@@ -235,6 +263,9 @@ export class Character {
     // ##    ##    ##    ##     ## ##       ##    ##  ##  ##  ## ##     ## ##    ##  ##       
     //  ######     ##    ########  ######## ##     ##  ###  ###  ##     ## ##     ## ######## 
 
+    /**
+     * Remove cyberware, refunding its value and restoring placeholder slots.
+     */
     resetCyberware() {
         let total_value_of_cyberware = 0;
         for (const cyberware of Object.values(this.cyberware)) {
@@ -278,6 +309,9 @@ export class Character {
 
     //TODO: Doesn't handle cyberware with requirements that aren't slotted directly into the requirement (e.g. Sensor Array)
     //TODO: Throw error if the cyberware would reduce humanity below 0
+    /**
+     * Install cyberware, enforcing slot requirements and cost rules.
+     */
     installCyberware({ cyberware, free = false }: { cyberware: Cyberware, free?: boolean }) {
         // this.cyberware[location] = cyberware;
         cyberware = new Cyberware({ ...cyberware });
@@ -346,6 +380,9 @@ export class Character {
         }
 
     }
+    /**
+     * Check whether any installed cyberware grants Speedware.
+     */
     hasSpeedware(): boolean {
         const neural_link = this.findCyberware("Neural Link");
         for (const cyberware of neural_link) {
@@ -359,6 +396,9 @@ export class Character {
         }
         return false;
     }
+    /**
+     * Validate if a cyberware item can be installed with current constraints.
+     */
     canInstallCyberware({ cyberware, free = false, returning = false }: { cyberware: Cyberware, free?: boolean, returning?: boolean }): boolean {
         // this.cyberware[location] = cyberware;
 
@@ -467,6 +507,9 @@ export class Character {
 
     }
 
+    /**
+     * Find all cyberware instances by name, including slotted options.
+     */
     findCyberware(cyberware_name: string): Cyberware[] {
         let cyberware_list: Cyberware[] = [];
         for (const location of Object.keys(this.cyberware)) {
@@ -495,6 +538,9 @@ export class Character {
     //     }
     //     return undefined;
     // }
+    /**
+     * Remove a cyberware item by id and refund its cost.
+     */
     uninstallCyberwareById(cyberware_id: string) {
         for (const location of Object.keys(this.cyberware)) {
             const cyberware = this.cyberware[location];
@@ -511,6 +557,9 @@ export class Character {
             }
         }
     }
+    /**
+     * Populate cyberware randomly when the creation method allows it.
+     */
     randomizeCyberware() {
         this.resetCyberware();
         if (this.creation_method == "complete") {
@@ -527,6 +576,9 @@ export class Character {
     }
 
 
+    /**
+     * Calculate total humanity loss across all installed cyberware.
+     */
     getHumanityLoss(): number {
         let humanity_loss = 0;
 
@@ -545,11 +597,17 @@ export class Character {
 
         return humanity_loss;
     }
+    /**
+     * Pick a random gear item within a cost ceiling.
+     */
     getRandomGearItem({ max_cost = this.cash }: { max_cost?: number } = {}) {
         const gear = Object.values(Gear).filter(gear => gear.cost <= max_cost);
         const randomIndex = Math.floor(Math.random() * gear.length);
         return gear[randomIndex];
     }
+    /**
+     * Pick a random armor item (optionally shield-only) within a budget.
+     */
     getRandomArmor({ armorType = "all", max_cost = this.cash }: { armorType?: "all" | "include shield" | "shield only"; max_cost?: number } = {}): Armor | "None" {
         let availableArmor: (Armor | "None")[] = ["None"];
         if (armorType === "all" || armorType === "include shield") {
@@ -562,6 +620,9 @@ export class Character {
         const randomIndex = Math.floor(Math.random() * availableArmor.length);
         return availableArmor[randomIndex];
     }
+    /**
+     * Pick a random weapon by type with optional exclusions and budget limits.
+     */
     getRandomWeapon({ weaponTypes, excluded_weapons, max_cost }: { weaponTypes?: WeaponType[] | undefined; excluded_weapons?: string[]; max_cost?: number } = {}): Weapon {
         if (weaponTypes === undefined) {
             weaponTypes = ["melee", "ranged"];
@@ -588,6 +649,9 @@ export class Character {
         const randomIndex = Math.floor(Math.random() * allWeapons.length);
         return allWeapons[randomIndex];
     };
+    /**
+     * Clear armor slots and refund any spent armor costs.
+     */
     resetArmor() {
         this.cash += this.armor.body == "None" ? 0 : this.armor.body.cost;
         if (this.armor.body == "None" || this.armor.body.armor_type != "Bodyweight Suit") {
@@ -598,6 +662,9 @@ export class Character {
         this.armor.head = "None";
         this.armor.shield = "None";
     }
+    /**
+     * Randomize armor purchases within the character's available cash.
+     */
     randomizeArmor() {
         this.resetArmor();
         let cash = this.cash;
@@ -633,12 +700,18 @@ export class Character {
             this.cash -= armor_cost
         }
     }
+    /**
+     * Remove all weapons and refund their costs.
+     */
     resetWeapons() {
         for (const weapon of this.weapons) {
             this.cash += weapon.cost;
         }
         this.weapons = [];
     }
+    /**
+     * Randomize weapons for complete characters within budget.
+     */
     randomizeWeapons() {
         this.resetWeapons();
         if (this.creation_method == "complete") {
@@ -654,12 +727,18 @@ export class Character {
             }
         }
     }
+    /**
+     * Remove all gear items and refund their costs.
+     */
     resetGear() {
         for (const item in this.gear) {
             this.cash += this.gear[item].cost;
         }
         this.gear = [];
     }
+    /**
+     * Randomize gear purchases until cash runs out or a stop condition hits.
+     */
     randomizeGear() {
         this.resetGear();
         if (this.creation_method == "complete") {
@@ -689,11 +768,17 @@ export class Character {
     // ##    ## ##   ##   ##  ##       ##       ##    ## 
     //  ######  ##    ## #### ######## ########  ######  
 
+    /**
+     * Reset all skill levels back to zero.
+     */
     resetSkills() {
         for (const skill of Object.values(this.skills)) {
             skill.lvl = 0;
         }
     }
+    /**
+     * Allocate skill points based on creation method and role tables.
+     */
     randomizeSkills() {
         this.resetSkills();
 
@@ -774,6 +859,9 @@ export class Character {
 
         throw new Error("Could not randomize skills");
     }
+    /**
+     * Assign stats using either point-buy or table-driven generation.
+     */
     randomizeStats() {
         if (this.creation_method == "complete") {
             let stat_points = Stat_Points[this.character_rank]
@@ -813,17 +901,29 @@ export class Character {
         }
         throw new Error("Could not randomize stats")
     }
+    /**
+     * Run the core stat and skill randomization pipeline.
+     */
     randomize() {
         this.randomizeStats();
         this.randomizeSkills();
     }
+    /**
+     * Reset the lifepath to the starting cultural origin table.
+     */
     resetLifepath() {
         this.lifepath = new Lifepath();
         this.lifepath.setStartingTable(CulturalOriginTable);
     }
+    /**
+     * Walk the base lifepath tables and populate `lifepath.path`.
+     */
     walkLifepath() {
         this.lifepath.walkPath();
     }
+    /**
+     * Update the character's role and seed role-specific lifepath tables.
+     */
     setRole(role: Role) {
         this.role = role;
         this.role_lifepath = undefined;
@@ -833,6 +933,9 @@ export class Character {
             this.role_lifepath.setStartingTable(role_start_table);
         }
     }
+    /**
+     * Walk the role-specific lifepath, if configured.
+     */
     walkRoleLifepath() {
         if (this.role_lifepath === undefined) {
             return;

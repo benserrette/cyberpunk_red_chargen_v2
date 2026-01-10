@@ -1,5 +1,8 @@
 /**
  * Exec role lifepath table.
+ *
+ * Linked table chain that the Character role lifepath walks to build exec-
+ * specific narrative rows.
  */
 import { LifepathTable } from "@/classes/Lifepath";
 

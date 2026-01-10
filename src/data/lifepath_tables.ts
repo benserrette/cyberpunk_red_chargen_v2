@@ -1,8 +1,14 @@
 /**
  * Base lifepath table data.
+ *
+ * The Character model initializes its Lifepath with these tables, and the
+ * LifepathTable traversal defines how narrative rows chain together.
  */
 import { LifepathTable, LifepathRow } from "@/classes/Lifepath";
 
+/**
+ * Entry point table for base lifepath generation.
+ */
 export { cultural_origin as CulturalOriginTable }
 
 const cultural_origin = new LifepathTable({
@@ -489,4 +495,3 @@ const life_goals = new LifepathTable({
     ]
 })
 tragic_love_affairs.setNextTable(life_goals);
-

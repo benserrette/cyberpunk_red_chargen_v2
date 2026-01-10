@@ -30,12 +30,25 @@ import CPButton from '@/components/CPButton.vue';
 
 import type { CreationMethod } from '@/classes/Character';
 
+/**
+ * Main character generator view.
+ *
+ * This view wires together the Character model, data catalogs, and UI
+ * components to allow users to randomize and edit a complete character sheet.
+ */
+
 // const emit = defineEmits(['update:modelValue'])
 
+/**
+ * Reactive state for character generation controls and the active Character.
+ */
 const creation_method = ref<CreationMethod>("street rat");
 const role = ref<Role>(Role.Medtech);
 const char = ref<Character>(new Character()) // Initializes reactive variable for character.
 
+/**
+ * Generate a full character based on the selected role and creation method.
+ */
 function generateCharacter() {
     char.value.reset({ creation_method: creation_method.value, role: role.value });
 
@@ -81,11 +94,16 @@ function generateCharacter() {
  *  base - stat + level
  */
 const sort_method = ref('base'); // Initializes reactive variable for sorting method, default 'base'.
-// Function to divide a skills array into three chunks.
+/**
+ * Divide a skills array into six chunks for multi-column display.
+ */
 const createSkillsChunks = (skills: Skill[]) => {
     const chunkSize = Math.ceil(skills.length / 6); // Calculates size of each chunk.
     return [0, 1, 2, 3, 4, 5].map(i => skills.slice(i * chunkSize, (i + 1) * chunkSize)); // Creates three chunks.
 };
+/**
+ * Return skill rows sorted and chunked based on the chosen sort mode.
+ */
 function calculated_skills(sort_method: string) {
     // Sort skills alphabetically as a baseline.
     const alphabetical_skills = Object.values(char.value.skills).sort((a, b) => a.name.localeCompare(b.name))
@@ -157,6 +175,9 @@ const cash = computed(() => {
 })
 
 
+/**
+ * Derived stats computed from raw stats and installed cyberware.
+ */
 const derived_stats = computed(() => {
     const humanity = char.value.stats.EMP * 10;
     const hit_points = 10 + (5 * Math.ceil((char.value.stats.BODY + char.value.stats.WILL) / 2));
@@ -170,6 +191,9 @@ const derived_stats = computed(() => {
     }
 })
 
+/**
+ * Computed getter/setter for bulk stat editing, including current EMP.
+ */
 const stats_block = computed({
     get: () => {
         const stats: Record<string, number> = {}

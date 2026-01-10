@@ -1,5 +1,11 @@
 /**
  * Clip size chart keyed by weapon.
+ *
+ * Used by the Weapon constructor to seed default ammo quantities and by the
+ * UI to display magazine capacities.
+ */
+/**
+ * Maps normalized weapon keys to standard/extended/drum clip sizes.
  */
 const clip_chart: Record<string, Record<string, number>> = {
     medium_pistol: {

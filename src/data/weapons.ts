@@ -1,8 +1,14 @@
 /**
  * Weapon catalog data.
+ *
+ * Weapon instances are created here so the Character generator and equipment
+ * tables can pull fully initialized Weapon objects without duplicating logic.
  */
 import { Weapon } from "../classes/Weapon";
 
+/**
+ * Pre-built melee weapon instances for randomization and equipment tables.
+ */
 const melee_weapons = [
     new Weapon({
         name: "Light Melee Weapon",
@@ -42,6 +48,9 @@ const melee_weapons = [
     })
 ];
 
+/**
+ * Pre-built ranged weapon instances for randomization and equipment tables.
+ */
 const ranged_weapons = [
     new Weapon({
         name: "Medium Pistol",
@@ -280,5 +289,4 @@ const ranged_weapons = [
 ];
 
 export { melee_weapons as MeleeWeapons, ranged_weapons as RangedWeapons };
-
 

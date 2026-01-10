@@ -1,3 +1,4 @@
+/* Global Tailwind entrypoint for shared UI styles across the app. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

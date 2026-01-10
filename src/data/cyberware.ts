@@ -1,8 +1,14 @@
 /**
  * Cyberware classes, enums, and catalog data.
+ *
+ * The Character model relies on these definitions to enforce installation
+ * rules, slot capacities, and humanity loss calculations.
  */
 
 
+/**
+ * Base body locations where cyberware can be installed.
+ */
 export enum BodyLocation {
     Brain = "Brain",
     Ear = "Ear",
@@ -20,6 +26,9 @@ export enum BodyLocation {
 
 }
 
+/**
+ * Categories used to apply rules and UI grouping for cyberware.
+ */
 export enum CyberwareType {
     Fashionware = "Fashionware",
     Neuralware = "Neuralware",
@@ -33,8 +42,14 @@ export enum CyberwareType {
     Speedware = "Speedware",
 }
 
+/**
+ * Foundational cyberware names that other items may depend upon.
+ */
 export type FoundationalCyberware = "Neural Link" | "Cybereye" | "Cyberaudio Suite" | "Cyberarm" | "Cyberleg" | "Chipware Socket" | "Meat";
 
+/**
+ * Runtime cyberware instance with slot management and cost tracking.
+ */
 export class Cyberware {
     name: string;
     type: CyberwareType;
@@ -52,6 +67,9 @@ export class Cyberware {
     max_installs: number = 0;
     placeholder: boolean = false;
     id: string = "";
+    /**
+     * Create a cyberware instance from static data with defaults.
+     */
     constructor({
         name,
         type,
@@ -104,6 +122,9 @@ export class Cyberware {
         this.id = Math.random().toString(36).slice(2, 18);
     }
 
+    /**
+     * Compute humanity loss including any slotted options.
+     */
     getHumanityLoss(): number {
         let humanityLoss = this.humanity_loss;
         humanityLoss += this.slotted_options.reduce((acc, option) => {
@@ -111,6 +132,9 @@ export class Cyberware {
         }, 0);
         return humanityLoss
     }
+    /**
+     * Calculate open slots remaining after accounting for installed options.
+     */
     getOpenSlots(): number {
         let slots = this.slots_available;
         slots -= this.slotted_options.reduce((acc, option) => {
@@ -118,12 +142,18 @@ export class Cyberware {
         }, 0);
         return slots
     }
+    /**
+     * Install an option into this cyberware, enforcing slot capacity.
+     */
     pushOption(option: Cyberware) {
         if (this.getOpenSlots() < option.slots_required) {
             throw new Error("Not enough slots available for this option")
         }
         this.slotted_options.push(option);
     }
+    /**
+     * Recursively search for slotted cyberware by name.
+     */
     findCyberwareInSlots(name: string): Cyberware[] {
         let cyberware_list: Cyberware[] = [];
         for (let item of this.slotted_options) {
@@ -144,6 +174,9 @@ export class Cyberware {
     //     }
     //     return cyberware_list;
     // }
+    /**
+     * Calculate total cost including all slotted options.
+     */
     totalCost(): number {
         let cost = this.cost;
         cost += this.slotted_options.reduce((acc, option) => {
@@ -151,6 +184,9 @@ export class Cyberware {
         }, 0);
         return cost
     }
+    /**
+     * Uninstall all options and return the refunded cost.
+     */
     uninstallAllOptions(): number {
         let cost = 0;
         for (let cyberware_index in this.slotted_options) {
@@ -173,6 +209,9 @@ export class Cyberware {
     //     }
     //     return cost;
     // }
+    /**
+     * Uninstall a specific option by id and return the refunded cost.
+     */
     uninstallOptionById(id: string): number {
         let cost = 0;
         for (let i = 0; i < this.slotted_options.length; i++) {
@@ -1189,6 +1228,9 @@ const cyberlegs = [
     }];
 
 
+/**
+ * Flattened list of all cyberware instances for randomization and lookup.
+ */
 let all_cyberware: Cyberware[] = []
 // for (let item of placeholders) {
 //     all_cyberware.push(new Cyberware({ ...item }))

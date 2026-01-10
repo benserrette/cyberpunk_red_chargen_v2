@@ -1,5 +1,11 @@
 /**
  * Role enum definitions.
+ *
+ * Roles drive equipment tables, skill allocations, and lifepath branching
+ * across the Character generation flow and UI.
+ */
+/**
+ * Canonical role identifiers used in data tables and components.
  */
 export enum Role {
   Solo = "Solo",
