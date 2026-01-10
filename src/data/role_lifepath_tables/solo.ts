@@ -1,3 +1,6 @@
+/**
+ * Solo role lifepath table.
+ */
 import { LifepathTable } from "@/classes/Lifepath";
 
 

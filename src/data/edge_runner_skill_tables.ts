@@ -1,3 +1,6 @@
+/**
+ * Edgerunner skill table presets by role.
+ */
 import { Role } from '@/data';
 
 const tables: Record<Role, Record<string, number>> = {

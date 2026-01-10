@@ -1,3 +1,6 @@
+/**
+ * Civilian equipment roll table.
+ */
 const items = [
     [{
         type: "armor",

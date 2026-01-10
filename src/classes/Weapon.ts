@@ -1,3 +1,6 @@
+/**
+ * Weapon domain model with ammo and attachment logic.
+ */
 import { type WeaponAttachment } from "@/data/weapon_attachments";
 import { type AmmoType } from "@/data/ammo_types";
 

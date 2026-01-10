@@ -1,3 +1,6 @@
+/**
+ * Role enum definitions.
+ */
 export enum Role {
   Solo = "Solo",
   Fixer = "Fixer",

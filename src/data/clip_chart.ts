@@ -1,3 +1,6 @@
+/**
+ * Clip size chart keyed by weapon.
+ */
 const clip_chart: Record<string, Record<string, number>> = {
     medium_pistol: {
         standard: 12,

@@ -1,3 +1,6 @@
+/**
+ * Armor catalog and related types.
+ */
 interface Armor {
     armor_type: string;
     description: string;

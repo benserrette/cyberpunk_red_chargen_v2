@@ -1,3 +1,6 @@
+/**
+ * Cyberware slot and location definitions.
+ */
 
 
 export const enum CyberwareLocation {

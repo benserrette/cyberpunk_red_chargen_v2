@@ -1,4 +1,6 @@
-// import './assets/main.css'
+/**
+ * Application entry point that mounts the Vue app.
+ */
 import './style.css'
 
 import { createApp } from 'vue'

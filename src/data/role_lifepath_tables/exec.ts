@@ -1,3 +1,6 @@
+/**
+ * Exec role lifepath table.
+ */
 import { LifepathTable } from "@/classes/Lifepath";
 
 const starting_table = new LifepathTable({

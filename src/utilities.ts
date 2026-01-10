@@ -1,3 +1,6 @@
+/**
+ * Shared utility helpers.
+ */
 
 function random_key(obj: Object): number | string {
     let keys = Object.keys(obj);

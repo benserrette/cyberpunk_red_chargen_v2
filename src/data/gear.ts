@@ -1,3 +1,6 @@
+/**
+ * Gear catalog and item definitions.
+ */
 export interface GearItem {
     name: string;
     cost: number;

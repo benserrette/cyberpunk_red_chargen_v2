@@ -1,3 +1,6 @@
+/**
+ * Character domain model with randomization and equipment logic.
+ */
 import {
     Role,
     Stat,

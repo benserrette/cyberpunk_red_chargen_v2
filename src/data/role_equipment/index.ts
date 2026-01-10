@@ -1,3 +1,6 @@
+/**
+ * Role equipment table registry.
+ */
 import Solo from './solo';
 import Rockerboy from './rockerboy';
 import Netrunner from './netrunner';
