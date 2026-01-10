@@ -1,3 +1,6 @@
+/**
+ * Barrel exports for data catalogs and enums.
+ */
 import { Stat } from './stats'
 import { SKILLS_LIST as SkillList, required_skills as RequiredSkills, categories as SkillCategories } from './skills'
 import { Role } from './roles'

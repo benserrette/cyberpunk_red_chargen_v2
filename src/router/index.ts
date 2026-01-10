@@ -1,3 +1,6 @@
+/**
+ * Client-side route definitions for the app.
+ */
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 

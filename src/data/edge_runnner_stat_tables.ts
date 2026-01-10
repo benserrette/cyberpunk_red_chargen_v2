@@ -1,3 +1,6 @@
+/**
+ * Edgerunner stat table presets by role.
+ */
 import { Role } from '@/data';
 
 const tables: Record<Role, number[][]> = {

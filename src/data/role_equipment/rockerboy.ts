@@ -1,3 +1,6 @@
+/**
+ * Rockerboy equipment roll table.
+ */
 const items = [
     [{
         type: "weapon",

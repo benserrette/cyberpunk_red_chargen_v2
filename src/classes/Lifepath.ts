@@ -1,3 +1,6 @@
+/**
+ * Lifepath tables and traversal utilities.
+ */
 
 class Lifepath {
     // affectation = ""

@@ -1,3 +1,6 @@
+/**
+ * Ammo type catalog data.
+ */
 export interface AmmoType {
     name: string;
     cost: number;

@@ -1,3 +1,6 @@
+/**
+ * Stat enum definitions.
+ */
 
 export enum Stat {
     INT = "INT",

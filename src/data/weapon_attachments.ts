@@ -1,3 +1,6 @@
+/**
+ * Weapon attachment catalog data.
+ */
 export interface WeaponAttachment {
     name: string;
     cost: number;

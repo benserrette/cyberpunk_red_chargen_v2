@@ -1,3 +1,6 @@
+/**
+ * Medtech equipment roll table.
+ */
 const items = [
     [{
         type: "weapon",

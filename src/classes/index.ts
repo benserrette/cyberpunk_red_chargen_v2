@@ -1,3 +1,6 @@
+/**
+ * Barrel exports for core domain classes.
+ */
 import { Character } from "./Character";
 import { Skill } from "./Skill";
 import { Lifepath } from "./Lifepath";

@@ -1,3 +1,6 @@
+/**
+ * Cyberware classes, enums, and catalog data.
+ */
 
 
 export enum BodyLocation {

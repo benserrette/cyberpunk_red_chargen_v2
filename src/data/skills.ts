@@ -1,3 +1,6 @@
+/**
+ * Skill catalog, categories, and required skill list.
+ */
 import { Stat } from './stats';
 import { Skill } from '@/classes/Skill';
 

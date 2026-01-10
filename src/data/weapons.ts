@@ -1,3 +1,6 @@
+/**
+ * Weapon catalog data.
+ */
 import { Weapon } from "../classes/Weapon";
 
 const melee_weapons = [

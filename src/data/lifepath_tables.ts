@@ -1,3 +1,6 @@
+/**
+ * Base lifepath table data.
+ */
 import { LifepathTable, LifepathRow } from "@/classes/Lifepath";
 
 export { cultural_origin as CulturalOriginTable }

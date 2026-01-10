@@ -1,3 +1,6 @@
+/**
+ * Skill domain model and key helpers.
+ */
 import { Stat } from "@/data";
 
 export class Skill {
