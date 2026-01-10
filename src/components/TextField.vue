@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { withDefaults } from 'vue';
 
+/**
+ * Reusable label + input/display control for character sheet fields.
+ */
 const props = withDefaults(defineProps<{
     title: string,
     value?: string | number,

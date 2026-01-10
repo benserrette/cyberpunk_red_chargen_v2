@@ -3,6 +3,9 @@ import TextField from '@/components/TextField.vue'
 import { computed, withDefaults } from 'vue'
 // import type { Stat } from '@/types'
 
+/**
+ * Grid of stat inputs with fixed or editable behavior.
+ */
 const props = withDefaults(
     defineProps<{
         // stats?: Record<string, number>,

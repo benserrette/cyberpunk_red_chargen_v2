@@ -1,5 +1,11 @@
 /**
  * Gear catalog and item definitions.
+ *
+ * Gear items are referenced by equipment tables and the Character generator to
+ * build inventory lists for UI display.
+ */
+/**
+ * Shape of a gear item entry in the static catalog.
  */
 export interface GearItem {
     name: string;
@@ -8,6 +14,9 @@ export interface GearItem {
     bonus?: string;
 }
 
+/**
+ * Lookup table of gear items keyed by slug.
+ */
 const gear: Record<string, GearItem> = {
     "agent": {
         name: "Agent",

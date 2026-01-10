@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CPButton from '@/components/CPButton.vue'
+/**
+ * Table wrapper with optional headers and randomize action.
+ */
 const props = defineProps<{
     headers?: string[],
     title: string,

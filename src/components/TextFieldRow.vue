@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 import TextField from '@/components/TextField.vue'
 
+/**
+ * Horizontal row of TextField components for quick character info entry.
+ */
 const props = defineProps<{
     values: Record<string, string | number | { value: string | number, type: string }>,
 }>()
@@ -12,6 +15,9 @@ const last = computed(() => {
     return Object.keys(props.values).pop();
 })
 
+/**
+ * Compute per-cell classes for grid separators and alignment.
+ */
 function classes(key: string, value: string | number) {
     let classes = "p-4 ";
     classes += key != last.value ? ' border-red-500 border-r-4' : ' '
@@ -19,6 +25,9 @@ function classes(key: string, value: string | number) {
     return classes;
 }
 
+/**
+ * Normalize the row values into a consistent shape for rendering.
+ */
 const values = computed(() => {
     let vals: Record<string, { type: string, value: string | number }> = {};
     for (let key in props.values) {

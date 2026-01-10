@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Character } from '@/classes'
 import SkillTable from './SkillTable.vue';
+/**
+ * Renders all SkillTable groups for the current Character.
+ */
 defineProps<{
     char: Character
 }>()

@@ -1,5 +1,8 @@
 /**
  * Role equipment table registry.
+ *
+ * Character.getEquipmentFromTable reads from this registry to seed gear for
+ * the current role during generation.
  */
 import Solo from './solo';
 import Rockerboy from './rockerboy';
@@ -13,6 +16,9 @@ import Medtech from './medtech';
 import Nomad from './nomad';
 import Tech from './tech';
 
+/**
+ * Lookup map of role name to equipment roll table arrays.
+ */
 const table: Record<string, any> = {
     "Solo": Solo,
     "Rockerboy": Rockerboy,

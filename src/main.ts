@@ -1,5 +1,8 @@
 /**
  * Application entry point that mounts the Vue app.
+ *
+ * This file wires up global concerns (Pinia, router, base styles) before
+ * mounting the root App component that coordinates the UI.
  */
 import './style.css'
 

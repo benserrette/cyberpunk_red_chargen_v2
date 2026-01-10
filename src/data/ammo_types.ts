@@ -1,5 +1,11 @@
 /**
  * Ammo type catalog data.
+ *
+ * The Weapon model consumes these entries to validate ammo additions and the
+ * UI uses them to describe effects and compatibility.
+ */
+/**
+ * Shape of an ammo type entry in the static catalog.
  */
 export interface AmmoType {
     name: string;
@@ -8,6 +14,9 @@ export interface AmmoType {
     description: string;
 }
 
+/**
+ * Master list of ammo types available across weapon categories.
+ */
 const ammo_types: AmmoType[] = [
     {
         name: "Basic Ammo",

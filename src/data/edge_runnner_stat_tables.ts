@@ -1,8 +1,14 @@
 /**
  * Edgerunner stat table presets by role.
+ *
+ * Character stat randomization pulls from these tables when using the
+ * "street rat" or "edgerunner" creation methods.
  */
 import { Role } from '@/data';
 
+/**
+ * Maps each role to a list of stat arrays in the canonical stat order.
+ */
 const tables: Record<Role, number[][]> = {
     [Role.Civilian]: [
         [5, 5, 5, 5, 5, 5, 5, 5, 5, 5],

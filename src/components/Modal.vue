@@ -1,5 +1,8 @@
 <script setup lang='ts'>
 import { defineProps } from 'vue';
+/**
+ * Generic modal overlay used for configuration and detail dialogs.
+ */
 defineProps({
     visible: {
         type: Boolean,

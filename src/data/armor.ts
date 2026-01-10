@@ -1,5 +1,11 @@
 /**
  * Armor catalog and related types.
+ *
+ * Armor entries are consumed by Character equipment generation and rendered in
+ * the UI with descriptive text and penalties.
+ */
+/**
+ * Shape of an armor entry in the static catalog.
  */
 interface Armor {
     armor_type: string;
@@ -9,6 +15,9 @@ interface Armor {
     cost: number;
 }
 
+/**
+ * Long-form armor descriptions keyed by armor type name.
+ */
 const armor_descriptions: Record<string, string> = {
     Leathers: "Thin leather with reinforced pads at shoulders, hips, and gut. Favored by Nomads and other 'punks who ride bikes. This also includes all those road-warrior wannabes wearing open-butt chaps and random sports equipment.",
     "Kevlar®": "The favored protection for the past 90 years. To quote DuPont: Kevlar® is a heat-resistant, synthetic, lightweight fiber that delivers high tensile strength that brings improved protection and performance across a range of industries and applications. Like when people are trying to stab or shoot you. Can be made into clothes, vests, jackets, business suits, and even bikinis.",
@@ -20,6 +29,9 @@ const armor_descriptions: Record<string, string> = {
     "Metalgear®": "You know how Evil Empire Storm Troopers just seem to stand there and take the hit? Metalgear® is the Dark Future equivalent of that type of armor: solid metal and plastic plates on a mesh body cover. Metalgear® will stop almost anything, but you're going to be easier to hit than a one-legged bantha in a potho race.",
     "Bulletproof Shield": "A transparent polycarbonate shield that can protect you in a firefight. See Using a Shield in the Friday Night Firefight Section (pg. 183). 10 HP which is reduced by damage. No penalty, but one arm is always in use."
 };
+/**
+ * Master list of armor entries available for selection and randomization.
+ */
 const armor_list: Armor[] = [
     {
         armor_type: "Leathers",

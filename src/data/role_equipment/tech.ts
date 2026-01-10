@@ -1,5 +1,7 @@
 /**
  * Tech equipment roll table.
+ *
+ * Each nested array represents a pick list consumed by Character.getEquipmentFromTable.
  */
 const items = [
     [{
@@ -147,6 +149,5 @@ export default items;
 // Body Armor (SP11)
 // Light Armorjack
 // Head Armor (SP11)
-
 
 

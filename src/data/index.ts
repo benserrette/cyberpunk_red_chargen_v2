@@ -1,5 +1,8 @@
 /**
  * Barrel exports for data catalogs and enums.
+ *
+ * Components and domain models import from this module to avoid reaching into
+ * individual data files, keeping dependencies centralized.
  */
 import { Stat } from './stats'
 import { SKILLS_LIST as SkillList, required_skills as RequiredSkills, categories as SkillCategories } from './skills'

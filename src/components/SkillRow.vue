@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Skill } from '@/classes/Skill';
+/**
+ * Table row for displaying a single skill and its derived base value.
+ */
 defineProps<{
 	skill: Skill
 	stat: number

@@ -1,5 +1,11 @@
 /**
  * Weapon attachment catalog data.
+ *
+ * Attachments are consumed by the Weapon model to validate slots and by UI
+ * components to describe modifiers for players.
+ */
+/**
+ * Shape of an attachment entry in the static catalog.
  */
 export interface WeaponAttachment {
     name: string;
@@ -8,6 +14,9 @@ export interface WeaponAttachment {
     description: string;
     attachment_slots: number;
 }
+/**
+ * Lookup table of weapon attachments keyed by slug.
+ */
 const weapon_attachments: { [key: string]: WeaponAttachment; } = {
     bayonet: {
         name: "Bayonet",
