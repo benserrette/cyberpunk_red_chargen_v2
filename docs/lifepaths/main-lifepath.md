@@ -12,7 +12,7 @@
 9. East Asian — Languages: Cantonese Chinese, English, Japanese, Korean, Mandarin Chinese, Mongolian
 10. Oceania/Pacific Islander — Languages: English, French, Hawaiian, Maori, Pama-Nyungan, Tahitian
 
-## Your Personality: What Are You Like? (roll 1d10 or choose one)
+## Your Personality (roll 1d10 or choose one)
 1. Shy and secretive
 2. Rebellious, antisocial, and violent
 3. Arrogant, proud, and aloof
@@ -126,7 +126,7 @@
 9. Reclaimers
 10. Edgerunners
 
-## Your Environment: Childhood Environment (roll 1d10 or choose one)
+## Childhood Environment (roll 1d10 or choose one)
 1. Ran on The Street, with no adult supervision.
 2. Spent in a safe Corp Zone walled off from the rest of the City.
 3. In a Nomad pack moving from place to place.
@@ -201,20 +201,19 @@
       8. A powerful gang lord or small Corporation.
       9. A powerful Corporation.
       10. An entire city or government or agency.
+   5. Sweet Revenge! (roll 1d10 or choose one)
+      1. Avoid the scum.
+      2. Avoid the scum.
+      3. Go into a murderous rage and try to physically rip their face off.
+      4. Go into a murderous rage and try to physically rip their face off.
+      5.  Backstab them indirectly.
+      6.  Backstab them indirectly.
+      7.  Verbally attack them.
+      8.  Verbally attack them.
+      9.  Set them up for a crime or other transgression they didn't commit.
+      10. Set out to murder or maim them.
 
-## Sweet Revenge! (roll 1d10 or choose one)
-1. Avoid the scum.
-2. Avoid the scum.
-3. Go into a murderous rage and try to physically rip their face off.
-4. Go into a murderous rage and try to physically rip their face off.
-5. Backstab them indirectly.
-6. Backstab them indirectly.
-7. Verbally attack them.
-8. Verbally attack them.
-9. Set them up for a crime or other transgression they didn't commit.
-10. Set out to murder or maim them.
-
-## Your Tragic Love Affair(s)
+## Your Tragic Love Affairs
 1. Roll 1d10 and subtract 7 (minimum 0) for number of tragic love affairs. For each, roll 1d10:
    1. Your lover died in an accident.
    2. Your lover mysteriously vanished.
@@ -227,7 +226,7 @@
    9. A rival cut you out of the action.
    10. Your lover is imprisoned or exiled.
 
-## The Wrap Up: Your Life Goals (roll 1d10 or choose one)
+## Your Life Goals (roll 1d10 or choose one)
 1. Get rid of a bad reputation.
 2. Gain power and control.
 3. Get off The Street no matter what it takes.

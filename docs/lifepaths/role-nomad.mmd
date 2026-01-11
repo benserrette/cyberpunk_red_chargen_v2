@@ -1,8 +1,11 @@
 flowchart TD
-    A[What Do You Do for Your Pack?] --> B[What's Your Pack's Overall Philosophy?]
-    B --> C[Who's Gunning for Your Pack?]
-    C --> D[How Big is Your Pack?]
-    D --> E[Is Your Pack Based on Land, Air, or Sea?]
+
+    D[How Big is Your Pack?] --> E[Is Your Pack Based on Land, Air, or Sea?]
     E -->|Land| F[If on Land, What Do They Do?]
     E -->|Air| G[If in Air, What Do They Do?]
     E -->|Sea| H[If at Sea, What Do They Do?]
+    F --> A[What Do You Do for Your Pack?]
+    G --> A
+    H --> A
+    A --> B[What's Your Pack's Overall Philosophy?]
+    B --> C[Who's Gunning for Your Pack?]
