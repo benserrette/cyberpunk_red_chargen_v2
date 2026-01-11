@@ -13,7 +13,7 @@ import {
     CyberwareType,
     Cyberware as CyberwareList
 } from '@/data';
-import { Lifepath, Skill, Character, Cyberware } from '@/classes';
+import { Lifepath, LifepathRow, LifepathTable, Skill, Character, Cyberware } from '@/classes';
 import type { WeaponAttachment, AmmoType, Armor } from '@/types'
 import TextField from '@/components/TextField.vue';
 import TextFieldRow from '@/components/TextFieldRow.vue'
@@ -372,9 +372,119 @@ function uninstallCyberware(id: string) {
 const lifepath = computed(() => {
     return char?.value?.lifepath?.path || [];
 })
+const role_lifepath = computed(() => {
+    return char?.value?.role_lifepath?.path || [];
+})
+type LifepathSelectionEntry = {
+    event: LifepathRow;
+    key: string;
+    options: LifepathRow[];
+    selectedIndex: number;
+};
+const lifepathSelections = ref<Record<string, number>>({});
+const roleLifepathSelections = ref<Record<string, number>>({});
+function buildLifepathPath(startingTable: LifepathTable | undefined, selections: Record<string, number>) {
+    const path: LifepathRow[] = [];
+    const tableOccurrences: Record<string, number> = {};
+
+    function walkTable(table: LifepathTable) {
+        let repeat = 1;
+        if (table.repeat === "1d10-7") {
+            repeat = Math.floor(Math.random() * 4);
+        } else {
+            repeat = table.repeat as number;
+        }
+
+        for (let i = 0; i < repeat; i++) {
+            const occurrence = (tableOccurrences[table.name] ?? 0) + 1;
+            tableOccurrences[table.name] = occurrence;
+            const key = `${table.name}#${occurrence}`;
+            let selectedIndex = selections[key];
+            if (selectedIndex === undefined || selectedIndex < 0 || selectedIndex >= table.rows.length) {
+                selectedIndex = Math.floor(Math.random() * table.rows.length);
+            }
+            selections[key] = selectedIndex;
+            const row = table.rows[selectedIndex];
+            path.push(new LifepathRow({ ...row }));
+            if (row.next_table) {
+                walkTable(row.next_table);
+                return;
+            }
+        }
+        if (table.next_table) {
+            walkTable(table.next_table);
+        }
+    }
+
+    if (startingTable) {
+        walkTable(startingTable);
+    }
+
+    return { path, selections };
+}
+function buildLifepathSelections(path: LifepathRow[], selections: Record<string, number>): LifepathSelectionEntry[] {
+    const occurrences: Record<string, number> = {};
+    return path.map((event) => {
+        const table = event.table;
+        const tableName = table?.name ?? "Unknown";
+        const occurrence = (occurrences[tableName] ?? 0) + 1;
+        occurrences[tableName] = occurrence;
+        const key = `${tableName}#${occurrence}`;
+        const options = table?.rows ?? [];
+        let selectedIndex = selections[key];
+        if (selectedIndex === undefined || selectedIndex < 0 || selectedIndex >= options.length) {
+            selectedIndex = options.findIndex((row) => row.value === event.value && row.description === event.description);
+        }
+        if (selectedIndex < 0) {
+            selectedIndex = 0;
+        }
+        return {
+            event,
+            key,
+            options,
+            selectedIndex
+        };
+    });
+}
+const lifepathSelectionsDisplay = computed(() => {
+    return buildLifepathSelections(lifepath.value, lifepathSelections.value);
+});
+const roleLifepathSelectionsDisplay = computed(() => {
+    return buildLifepathSelections(role_lifepath.value, roleLifepathSelections.value);
+});
+function rebuildLifepathFromSelections() {
+    const { path, selections } = buildLifepathPath(char.value.lifepath.starting_table, { ...lifepathSelections.value });
+    lifepathSelections.value = selections;
+    char.value.lifepath.path = path;
+}
+function rebuildRoleLifepathFromSelections() {
+    const { path, selections } = buildLifepathPath(char.value.role_lifepath?.starting_table, { ...roleLifepathSelections.value });
+    roleLifepathSelections.value = selections;
+    if (char.value.role_lifepath) {
+        char.value.role_lifepath.path = path;
+    }
+}
+function updateLifepathSelection(key: string, table: LifepathTable | undefined, index: number) {
+    if (!table) {
+        return;
+    }
+    lifepathSelections.value = { ...lifepathSelections.value, [key]: index };
+    rebuildLifepathFromSelections();
+}
+function updateRoleLifepathSelection(key: string, table: LifepathTable | undefined, index: number) {
+    if (!table) {
+        return;
+    }
+    roleLifepathSelections.value = { ...roleLifepathSelections.value, [key]: index };
+    rebuildRoleLifepathFromSelections();
+}
+function parseSelectValue(event: Event) {
+    return Number((event.target as HTMLSelectElement).value);
+}
 function walkLifepath() {
     char.value.resetLifepath();
-    char.value.walkLifepath()
+    lifepathSelections.value = {};
+    rebuildLifepathFromSelections();
 }
 const lifepath_modal_visible = ref(false)
 const lifepath_modal_content = ref("")
@@ -385,12 +495,10 @@ function openLifepathModal(content: string) {
 
 
 
-const role_lifepath = computed(() => {
-    return char?.value?.role_lifepath?.path || [];
-})
 function walkRoleLifepath() {
     char.value.setRole(char.value.role);
-    char.value.walkRoleLifepath()
+    roleLifepathSelections.value = {};
+    rebuildRoleLifepathFromSelections();
 }
 const role_lifepath_modal_visible = ref(false)
 const role_lifepath_modal_content = ref("")
@@ -778,16 +886,26 @@ generateCharacter(); // Generates a character on page load.
             <CPRow v-if="lifepath.length <= 0">
                 <td colspan="2" class="text-center">The general Lifepath has not been walked.</td>
             </CPRow>
-            <CPRow v-for="event, index in lifepath" :key="`lifepath_${event.table?.name}_${index}`">
+            <CPRow v-for="entry in lifepathSelectionsDisplay" :key="`lifepath_${entry.key}`">
                 <CPCell class="w-1/3">
-                    <span v-if="event.table?.description === undefined || event.table?.description == ''">{{
-                        event.table?.name
+                    <span v-if="entry.event.table?.description === undefined || entry.event.table?.description == ''">{{
+                        entry.event.table?.name
                         || "---" }}</span>
-                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(event.table?.description || '')">{{ event.table?.name }}</span>
+                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(entry.event.table?.description || '')">{{ entry.event.table?.name }}</span>
                 </CPCell>
                 <CPCell class="w-2/3">
-                    <span v-if="event.description" class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(event.description || '')">{{ event.value }}</span>
-                    <span v-else>{{ event.value }}</span>
+                    <select
+                        v-if="entry.options.length > 0"
+                        class="px-2 py-1 w-full"
+                        :value="entry.selectedIndex"
+                        @change="updateLifepathSelection(entry.key, entry.event.table, parseSelectValue($event))"
+                    >
+                        <option v-for="(option, optionIndex) in entry.options" :key="`lifepath_option_${entry.key}_${optionIndex}`" :value="optionIndex">
+                            {{ option.value }}
+                        </option>
+                    </select>
+                    <span v-else-if="entry.event.description" class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(entry.event.description || '')">{{ entry.event.value }}</span>
+                    <span v-else>{{ entry.event.value }}</span>
                 </CPCell>
             </CPRow>
         </CPTable>
@@ -805,16 +923,26 @@ generateCharacter(); // Generates a character on page load.
             <CPRow v-if="role_lifepath.length <= 0">
                 <td colspan="2" class="text-center">The {{ char.role }} Lifepath has not been walked.</td>
             </CPRow>
-            <CPRow v-for="event, index in role_lifepath" :key="`role_lifepath_${event.table?.name}_${index}`">
+            <CPRow v-for="entry in roleLifepathSelectionsDisplay" :key="`role_lifepath_${entry.key}`">
                 <CPCell class="w-1/3">
-                    <span v-if="event.table?.description === undefined || event.table?.description == ''">{{
-                        event.table?.name
+                    <span v-if="entry.event.table?.description === undefined || entry.event.table?.description == ''">{{
+                        entry.event.table?.name
                         || "---" }}</span>
-                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(event.table?.description || '')">{{ event.table?.name }}</span>
+                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(entry.event.table?.description || '')">{{ entry.event.table?.name }}</span>
                 </CPCell>
                 <CPCell class="w-2/3">
-                    <span v-if="event.description" class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(event.description || '')">{{ event.value }}</span>
-                    <span v-else>{{ event.value }}</span>
+                    <select
+                        v-if="entry.options.length > 0"
+                        class="px-2 py-1 w-full"
+                        :value="entry.selectedIndex"
+                        @change="updateRoleLifepathSelection(entry.key, entry.event.table, parseSelectValue($event))"
+                    >
+                        <option v-for="(option, optionIndex) in entry.options" :key="`role_lifepath_option_${entry.key}_${optionIndex}`" :value="optionIndex">
+                            {{ option.value }}
+                        </option>
+                    </select>
+                    <span v-else-if="entry.event.description" class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(entry.event.description || '')">{{ entry.event.value }}</span>
+                    <span v-else>{{ entry.event.value }}</span>
                 </CPCell>
             </CPRow>
         </CPTable>
