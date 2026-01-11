@@ -408,6 +408,9 @@ function buildLifepathPath(startingTable: LifepathTable | undefined, selections:
             path.push(new LifepathRow({ ...row }));
             if (row.next_table) {
                 walkTable(row.next_table);
+                if (table.next_table) {
+                    walkTable(table.next_table);
+                }
                 return;
             }
         }

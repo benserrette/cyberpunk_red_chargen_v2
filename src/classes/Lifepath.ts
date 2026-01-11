@@ -159,6 +159,9 @@ class LifepathTable {
             row.walkPath(path);
             if (row.next_table) {
                 row.next_table.walkPath(path);
+                if (this.next_table) {
+                    this.next_table.walkPath(path);
+                }
                 return;
             }
         }
