@@ -56,6 +56,7 @@ const office = new LifepathTable({
 });
 partner.rows[0].setNextTable(partner_details);
 partner.rows[1].setNextTable(office);
+partner_details.setNextTable(office);
 
 const side_clients = new LifepathTable({
     name: "Who are Your Side Clients?",
@@ -68,7 +69,7 @@ const side_clients = new LifepathTable({
         { value: "Local politicos or Execs who depend on you for finding out information." },
     ],
 });
-partner_details.setNextTable(side_clients);
+// partner_details.setNextTable(side_clients);
 office.setNextTable(side_clients);
 
 const gunning = new LifepathTable({
