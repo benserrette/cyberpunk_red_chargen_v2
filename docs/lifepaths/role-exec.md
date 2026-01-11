@@ -1,0 +1,53 @@
+# Cyberpunk Red Lifepath (Role: Exec)
+
+## What Kind of Corp Do You Work For? (roll 1d10 or choose one)
+1. Financial
+2. Media and Communications
+3. Cybertech and Medical Technologies
+4. Pharmaceuticals and Biotech
+5. Food, Clothing, or other General Consumables
+6. Energy Production
+7. Personal Electronics and Robotics
+8. Corporate Services
+9. Consumer Services
+10. Real Estate and Construction
+
+## What Division Do You Work In? (roll 1d6 or choose one)
+1. Procurement
+2. Manufacturing
+3. Research and Development
+4. Human Resources
+5. Public Affairs/Publicity/Advertising
+6. Mergers and Acquisitions
+
+## How Good/Bad is Your Corp? (roll 1d6 or choose one)
+1. Always working for good, fully supporting ethical practices.
+2. Operates as a fair and honest business all the time.
+3. Will occasionally slip and do unethical things, but it's rare.
+4. Willing to bend the rules to get what it needs.
+5. Ruthless and profit-centered, willing to do some bad things.
+6. Totally evil. Will engage in illegal, unethical business all the time.
+
+## Where is Your Corp Based? (roll 1d6 or choose one)
+1. One city
+2. Several cities
+3. Statewide
+4. National
+5. International, offices in a few major cities
+6. International, offices everywhere
+
+## Who's Gunning for Your Group? (roll 1d6 or choose one)
+1. Rival Corp in the same industry.
+2. Law enforcement is watching you.
+3. Local Media wants to bring you down.
+4. Different divisions in your own company are feuding with each other.
+5. Local government doesn't like your Corp.
+6. International Corporations are eyeing you for a hostile takeover.
+
+## Current State with Your Boss (roll 1d6 or choose one)
+1. Your Boss mentors you but watch out for their enemies.
+2. Your Boss gives you a free hand and doesn't want to know what you're up to.
+3. Your Boss is a micromanager who tries to meddle in your work.
+4. Your Boss is a psycho whose unpredictable outbursts are offset by quiet paranoia.
+5. Your Boss is cool and watches your back against rivals.
+6. Your Boss is threatened by your meteoric rise and is planning to knife you.
