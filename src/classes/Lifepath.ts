@@ -157,6 +157,10 @@ class LifepathTable {
         for (let i = 0; i < repeat; i++) {
             let row = this.getRandomRow();
             row.walkPath(path);
+            if (row.next_table) {
+                row.next_table.walkPath(path);
+                return;
+            }
         }
         if (this.next_table) {
             this.next_table.walkPath(path);
@@ -203,9 +207,13 @@ class LifepathRow {
      */
     walkPath(path: Lifepath) {
         path.pushRow(new LifepathRow({ ...this }));
-        if (this.next_table) {
-            this.next_table.walkPath(path);
-        }
+    }
+
+    /**
+     * Define the next table to visit after this row is selected.
+     */
+    setNextTable(table: LifepathTable) {
+        this.next_table = table;
     }
     /**
      * Format the row for logging and debugging.
