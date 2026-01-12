@@ -10,7 +10,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "test": "vitest run"
   },
   "dependencies": {
     "pinia": "^2.1.7",
@@ -35,6 +36,7 @@
     "typescript": "~5.4.0",
     "vite": "^5.1.5",
     "vite-plugin-vue-devtools": "^7.0.16",
+    "vitest": "^1.6.0",
     "vue-tsc": "^2.0.6"
   }
 }
