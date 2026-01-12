@@ -144,9 +144,13 @@ class LifepathTable {
     /**
      * Walk the table, pushing row(s) onto the provided Lifepath instance.
      */
-    walkPath(path: Lifepath) {
+    walkPath(path: Lifepath, repeatOverrides: Record<string, number[]> = {}) {
         let repeat = 1;
-        if (this.repeat === "1d10-7") {
+        const overrideQueue = repeatOverrides[this.name];
+        if (overrideQueue && overrideQueue.length > 0) {
+            repeat = overrideQueue.shift() ?? 1;
+        }
+        else if (this.repeat === "1d10-7") {
             // repeat = Math.floor(Math.random() * 10) - 7;
             repeat = Math.floor(Math.random() * 4)
         }
@@ -158,15 +162,15 @@ class LifepathTable {
             let row = this.getRandomRow();
             row.walkPath(path);
             if (row.next_table) {
-                row.next_table.walkPath(path);
-                if (this.next_table) {
-                    this.next_table.walkPath(path);
+                if (row.next_table_repeat !== undefined) {
+                    repeatOverrides[row.next_table.name] ??= [];
+                    repeatOverrides[row.next_table.name].push(row.next_table_repeat);
                 }
-                return;
+                row.next_table.walkPath(path, repeatOverrides);
             }
         }
         if (this.next_table) {
-            this.next_table.walkPath(path);
+            this.next_table.walkPath(path, repeatOverrides);
         }
     }
 
@@ -181,6 +185,7 @@ interface LifepathRow_Object {
     value: string;
     description?: string;
     next_table?: LifepathTable | undefined;
+    next_table_repeat?: number;
 }
 
 /**
@@ -191,11 +196,12 @@ class LifepathRow {
     value: string = "";
     description?: string = "";
     next_table?: LifepathTable | undefined = undefined;
+    next_table_repeat?: number = undefined;
 
     /**
      * Create a row, optionally linking to a follow-on table.
      */
-    constructor({ table, value, description, next_table }: { table?: LifepathTable, value: string, description?: string, next_table?: LifepathTable }) {
+    constructor({ table, value, description, next_table, next_table_repeat }: { table?: LifepathTable, value: string, description?: string, next_table?: LifepathTable, next_table_repeat?: number }) {
         if (!value) {
             throw new Error("Value is required");
         }
@@ -203,6 +209,7 @@ class LifepathRow {
         this.table = table;
         this.description = description || this.description;
         this.next_table = next_table || undefined;
+        this.next_table_repeat = next_table_repeat;
     }
 
     /**

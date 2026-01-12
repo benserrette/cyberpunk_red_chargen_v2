@@ -380,16 +380,21 @@ type LifepathSelectionEntry = {
     key: string;
     options: LifepathRow[];
     selectedIndex: number;
+    label: string;
 };
 const lifepathSelections = ref<Record<string, number>>({});
 const roleLifepathSelections = ref<Record<string, number>>({});
 function buildLifepathPath(startingTable: LifepathTable | undefined, selections: Record<string, number>) {
     const path: LifepathRow[] = [];
     const tableOccurrences: Record<string, number> = {};
+    const repeatOverrides: Record<string, number[]> = {};
 
     function walkTable(table: LifepathTable) {
         let repeat = 1;
-        if (table.repeat === "1d10-7") {
+        const overrideQueue = repeatOverrides[table.name];
+        if (overrideQueue && overrideQueue.length > 0) {
+            repeat = overrideQueue.shift() ?? 1;
+        } else if (table.repeat === "1d10-7") {
             repeat = Math.floor(Math.random() * 4);
         } else {
             repeat = table.repeat as number;
@@ -407,11 +412,11 @@ function buildLifepathPath(startingTable: LifepathTable | undefined, selections:
             const row = table.rows[selectedIndex];
             path.push(new LifepathRow({ ...row }));
             if (row.next_table) {
-                walkTable(row.next_table);
-                if (table.next_table) {
-                    walkTable(table.next_table);
+                if (row.next_table_repeat !== undefined) {
+                    repeatOverrides[row.next_table.name] ??= [];
+                    repeatOverrides[row.next_table.name].push(row.next_table_repeat);
                 }
-                return;
+                walkTable(row.next_table);
             }
         }
         if (table.next_table) {
@@ -427,6 +432,7 @@ function buildLifepathPath(startingTable: LifepathTable | undefined, selections:
 }
 function buildLifepathSelections(path: LifepathRow[], selections: Record<string, number>): LifepathSelectionEntry[] {
     const occurrences: Record<string, number> = {};
+    const indexedTables = new Set(["Enemy", "Friends", "Tragic Love Affair"]);
     return path.map((event) => {
         const table = event.table;
         const tableName = table?.name ?? "Unknown";
@@ -434,6 +440,7 @@ function buildLifepathSelections(path: LifepathRow[], selections: Record<string,
         occurrences[tableName] = occurrence;
         const key = `${tableName}#${occurrence}`;
         const options = table?.rows ?? [];
+        const label = indexedTables.has(tableName) ? `${tableName} ${occurrence}` : tableName;
         let selectedIndex = selections[key];
         if (selectedIndex === undefined || selectedIndex < 0 || selectedIndex >= options.length) {
             selectedIndex = options.findIndex((row) => row.value === event.value && row.description === event.description);
@@ -445,7 +452,8 @@ function buildLifepathSelections(path: LifepathRow[], selections: Record<string,
             event,
             key,
             options,
-            selectedIndex
+            selectedIndex,
+            label
         };
     });
 }
@@ -892,9 +900,8 @@ generateCharacter(); // Generates a character on page load.
             <CPRow v-for="entry in lifepathSelectionsDisplay" :key="`lifepath_${entry.key}`">
                 <CPCell class="w-1/3">
                     <span v-if="entry.event.table?.description === undefined || entry.event.table?.description == ''">{{
-                        entry.event.table?.name
-                        || "---" }}</span>
-                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(entry.event.table?.description || '')">{{ entry.event.table?.name }}</span>
+                        entry.label || "---" }}</span>
+                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openLifepathModal(entry.event.table?.description || '')">{{ entry.label }}</span>
                 </CPCell>
                 <CPCell class="w-2/3">
                     <select
@@ -929,9 +936,8 @@ generateCharacter(); // Generates a character on page load.
             <CPRow v-for="entry in roleLifepathSelectionsDisplay" :key="`role_lifepath_${entry.key}`">
                 <CPCell class="w-1/3">
                     <span v-if="entry.event.table?.description === undefined || entry.event.table?.description == ''">{{
-                        entry.event.table?.name
-                        || "---" }}</span>
-                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(entry.event.table?.description || '')">{{ entry.event.table?.name }}</span>
+                        entry.label || "---" }}</span>
+                    <span v-else class="cursor-pointer underline decoration-dashed" @click="openRoleLifepathModal(entry.event.table?.description || '')">{{ entry.label }}</span>
                 </CPCell>
                 <CPCell class="w-2/3">
                     <select

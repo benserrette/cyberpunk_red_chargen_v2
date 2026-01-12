@@ -372,7 +372,17 @@ const friends = new LifepathTable({
         { value: "Someone with a common interest or goal." },
     ]
 });
-family_crisis.setNextTable(friends);
+const friends_count = new LifepathTable({
+    name: "How many friends do you have?",
+    description: `Choose how many close friends have your back.`,
+    rows: [
+        { value: "None", next_table: friends, next_table_repeat: 0 },
+        { value: "One", next_table: friends, next_table_repeat: 1 },
+        { value: "Two", next_table: friends, next_table_repeat: 2 },
+        { value: "Three", next_table: friends, next_table_repeat: 3 },
+    ]
+});
+family_crisis.setNextTable(friends_count);
 
 
 const enemies = new LifepathTable({
@@ -393,7 +403,17 @@ const enemies = new LifepathTable({
         { value: "Boosterganger" },
     ]
 });
-friends.setNextTable(enemies);
+const enemies_count = new LifepathTable({
+    name: "How many enemies do you have?",
+    description: `Choose how many enemies are out to get you.`,
+    rows: [
+        { value: "None", next_table: enemies, next_table_repeat: 0 },
+        { value: "One", next_table: enemies, next_table_repeat: 1 },
+        { value: "Two", next_table: enemies, next_table_repeat: 2 },
+        { value: "Three", next_table: enemies, next_table_repeat: 3 },
+    ]
+});
+friends.setNextTable(enemies_count);
 
 const enemy_who_was_wronged = new LifepathTable({
     name: "Who was wronged?",
@@ -476,7 +496,17 @@ const tragic_love_affairs = new LifepathTable({
         { value: "Your lover is imprisoned or exiled." },
     ]
 })
-enemies.setNextTable(tragic_love_affairs);
+const tragic_love_count = new LifepathTable({
+    name: "How many tragic love affairs do you have?",
+    description: `Choose how many heartbreaks have shaped you.`,
+    rows: [
+        { value: "None", next_table: tragic_love_affairs, next_table_repeat: 0 },
+        { value: "One", next_table: tragic_love_affairs, next_table_repeat: 1 },
+        { value: "Two", next_table: tragic_love_affairs, next_table_repeat: 2 },
+        { value: "Three", next_table: tragic_love_affairs, next_table_repeat: 3 },
+    ]
+});
+enemies.setNextTable(tragic_love_count);
 
 
 const life_goals = new LifepathTable({
