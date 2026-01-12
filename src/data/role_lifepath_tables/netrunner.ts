@@ -65,7 +65,7 @@ const other_clients = new LifepathTable({
     ],
 });
 workspace.setNextTable(other_clients);
-partner_details.setNextTable(other_clients);
+partner_details.setNextTable(workspace);
 
 const programs = new LifepathTable({
     name: "Where Do You Get Your Programs?",

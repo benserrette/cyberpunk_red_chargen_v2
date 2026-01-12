@@ -31,17 +31,6 @@ const act = new LifepathTable({
 });
 starting_table.setNextTable(act);
 
-const group_performance = new LifepathTable({
-    name: "Where Do You Perform?",
-    rows: [
-        { value: "Alternative Cafes" },
-        { value: "Private Clubs" },
-        { value: "Seedy Dive Bars" },
-        { value: "Guerrilla Performances" },
-        { value: "Nightclubs Around the City" },
-        { value: "On the Data Pool" },
-    ],
-});
 
 const solo_history = new LifepathTable({
     name: "Were You Once in a Group?",
@@ -50,7 +39,6 @@ const solo_history = new LifepathTable({
         { value: "No" },
     ],
 });
-act.rows[0].setNextTable(group_performance);
 act.rows[1].setNextTable(solo_history);
 
 const why_left = new LifepathTable({
@@ -66,6 +54,21 @@ const why_left = new LifepathTable({
 });
 solo_history.rows[0].setNextTable(why_left);
 
+const where_perform = new LifepathTable({
+    name: "Where Do You Perform?",
+    rows: [
+        { value: "Alternative Cafes" },
+        { value: "Private Clubs" },
+        { value: "Seedy Dive Bars" },
+        { value: "Guerrilla Performances" },
+        { value: "Nightclubs Around the City" },
+        { value: "On the Data Pool" },
+    ],
+});
+why_left.setNextTable(where_perform);
+solo_history.rows[1].setNextTable(where_perform);
+act.rows[0].setNextTable(where_perform);
+
 const gunning = new LifepathTable({
     name: "Who's Gunning for You/Your Group?",
     rows: [
@@ -77,8 +80,6 @@ const gunning = new LifepathTable({
         { value: "Romantic interest or media figure who wants revenge for personal reasons." },
     ],
 });
-group_performance.setNextTable(gunning);
-solo_history.setNextTable(gunning);
-why_left.setNextTable(gunning);
+where_perform.setNextTable(gunning);
 
 export default starting_table;

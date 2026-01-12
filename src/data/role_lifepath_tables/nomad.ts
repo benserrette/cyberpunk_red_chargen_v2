@@ -6,7 +6,9 @@
  */
 import { LifepathTable } from "@/classes/Lifepath";
 
-const starting_table = new LifepathTable({
+
+
+const what_do = new LifepathTable({
     name: "What Do You Do for Your Pack?",
     rows: [
         { value: "Scout (negotiator)" },
@@ -29,8 +31,6 @@ const philosophy = new LifepathTable({
         { value: "Totally evil. You rage up and down the highways, killing, looting, and just terrorizing everyone." },
     ],
 });
-starting_table.setNextTable(philosophy);
-
 const gunning = new LifepathTable({
     name: "Who's Gunning for Your Pack?",
     rows: [
@@ -42,7 +42,6 @@ const gunning = new LifepathTable({
         { value: "Dirty Cops" },
     ],
 });
-philosophy.setNextTable(gunning);
 
 const pack_size = new LifepathTable({
     name: "How Big is Your Pack?",
@@ -55,8 +54,6 @@ const pack_size = new LifepathTable({
         { value: "An Affiliated Family (made of several Blood Families)" },
     ],
 });
-gunning.setNextTable(pack_size);
-
 const base = new LifepathTable({
     name: "Is Your Pack Based on Land, Air, or Sea?",
     rows: [
@@ -65,7 +62,6 @@ const base = new LifepathTable({
         { value: "Sea" },
     ],
 });
-pack_size.setNextTable(base);
 
 const land = new LifepathTable({
     name: "If on Land, What Do They Do?",
@@ -106,8 +102,18 @@ const sea = new LifepathTable({
         { value: "Submarine warfare" },
     ],
 });
+
+const starting_table = pack_size;
+starting_table.setNextTable(base);
 base.rows[0].setNextTable(land);
 base.rows[1].setNextTable(air);
 base.rows[2].setNextTable(sea);
+
+land.setNextTable(what_do);
+air.setNextTable(what_do);
+sea.setNextTable(what_do);
+
+what_do.setNextTable(philosophy);
+philosophy.setNextTable(gunning);
 
 export default starting_table;

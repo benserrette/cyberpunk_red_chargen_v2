@@ -31,18 +31,6 @@ const partner = new LifepathTable({
 });
 starting_table.setNextTable(partner);
 
-const workspace = new LifepathTable({
-    name: "What's Your Workspace Like?",
-    rows: [
-        { value: "A mess strewn with blueprint paper." },
-        { value: "Everything is color coded, but it's still a nightmare." },
-        { value: "Totally digital and obsessively backed up every day." },
-        { value: "You design everything on your Agent." },
-        { value: "You keep everything just in case you need it later." },
-        { value: "Only you understand your filing system." },
-    ],
-});
-
 const partner_details = new LifepathTable({
     name: "If You Have a Partner, Who are They?",
     rows: [
@@ -54,8 +42,21 @@ const partner_details = new LifepathTable({
         { value: "Secret partner with Corporate connections" },
     ],
 });
-partner.rows[0].setNextTable(workspace);
 partner.rows[1].setNextTable(partner_details);
+
+const workspace = new LifepathTable({
+    name: "What's Your Workspace Like?",
+    rows: [
+        { value: "A mess strewn with blueprint paper." },
+        { value: "Everything is color coded, but it's still a nightmare." },
+        { value: "Totally digital and obsessively backed up every day." },
+        { value: "You design everything on your Agent." },
+        { value: "You keep everything just in case you need it later." },
+        { value: "Only you understand your filing system." },
+    ],
+});
+partner.rows[0].setNextTable(workspace);
+partner_details.setNextTable(workspace);
 
 const main_clients = new LifepathTable({
     name: "Who are Your Main Clients?",
@@ -69,7 +70,6 @@ const main_clients = new LifepathTable({
     ],
 });
 workspace.setNextTable(main_clients);
-partner_details.setNextTable(main_clients);
 
 const supplies = new LifepathTable({
     name: "Where Do You Get Your Supplies?",
