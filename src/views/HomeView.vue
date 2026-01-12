@@ -218,6 +218,19 @@ const remaining_stat_points = computed(() => {
 const can_change_stats = computed(() => {
     return creation_method.value == 'complete'
 })
+const can_change_skills = computed(() => {
+    return creation_method.value == 'complete'
+})
+const remaining_skill_points = computed(() => {
+    return char.value.getRemainingSkillPoints();
+})
+const requiredSkillSet = new Set(RequiredSkills);
+const minSkillLevel = (skill: Skill) => {
+    if (can_change_skills.value && requiredSkillSet.has(skill.name)) {
+        return 2;
+    }
+    return 0;
+}
 
 
 // ##      ## ########    ###    ########   #######  ##    ##  ######  
@@ -548,6 +561,13 @@ function randomizeSkills() { char.value.randomizeSkills() }
 
 function randomizeHandle() { char.value.randomizeName(); }
 
+function updateSkillLevel(skill: Skill, level: number) {
+    if (!can_change_skills.value) {
+        return;
+    }
+    char.value.setSkillLevel(skill.getKey(), level);
+}
+
 
 
 watch([char.value.skills, char.value.stats, sort_method, stats_block], () => {
@@ -671,15 +691,19 @@ generateCharacter(); // Generates a character on page load.
                     </select>
                 </div>
                 <div class="text-right">
+                    <span v-if="can_change_skills" class="mr-2 font-normal">Points remaining: {{ remaining_skill_points }}</span>
                     <CPButton v-if="['complete', 'edgerunner'].includes(creation_method)" @click="randomizeSkills()">Randomize</CPButton>
                 </div>
             </CPTitle>
             <div class=" sm:columns-2 md:columns-3 columns-1 gap-1 bg-red-500 p-1">
                 <template v-if="sort_method === 'group'">
-                    <SkillsByGroup :char="char" />
+                    <SkillsByGroup :char="char" :editable="can_change_skills" :min-level="minSkillLevel"
+                        :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
                 <template v-else>
-                    <SkillTable v-for="(chunk, index) in skillChunks" :key="`skill_chunk_${index}`" :chunk :char />
+                    <SkillTable v-for="(chunk, index) in skillChunks" :key="`skill_chunk_${index}`" :chunk :char
+                        :editable="can_change_skills" :min-level="minSkillLevel" :on-skill-update="updateSkillLevel"
+                        :max-level="6" />
                 </template>
             </div>
         </div>

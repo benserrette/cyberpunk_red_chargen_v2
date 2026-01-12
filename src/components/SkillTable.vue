@@ -10,7 +10,11 @@ import { SkillCategories } from '@/data';
 const props = defineProps<{
     category?: string;
     char: Character;
-    chunk?: Skill[]
+    chunk?: Skill[];
+    editable?: boolean;
+    minLevel?: (skill: Skill) => number;
+    maxLevel?: number;
+    onSkillUpdate?: (skill: Skill, level: number) => void;
 }>();
 
 const { char, category } = props;
@@ -48,6 +52,8 @@ const filtered_skills = computed(() => {
             <th class="border-r-4 border-red-500 text-xs p-1 w-1/12">STAT</th>
             <th class="border-r-4 border-red-500 text-xs p-1  w-1/12">BASE</th>
         </tr>
-        <SkillRow v-for="skill of filtered_skills" class="" :skill="skill" :stat="char.stats[skill.stat]" />
+        <SkillRow v-for="skill of filtered_skills" class="" :skill="skill" :stat="char.stats[skill.stat]"
+            :editable="props.editable" :min-level="props.minLevel ? props.minLevel(skill) : 0"
+            :max-level="props.maxLevel ?? 6" :on-update="props.onSkillUpdate" />
     </table>
 </template>
