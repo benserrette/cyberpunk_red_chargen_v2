@@ -31,6 +31,17 @@ const level = computed({
 		}
 	}
 })
+
+function handleBlur(event: FocusEvent) {
+	const target = event.target as HTMLInputElement | null;
+	const value = target ? Number(target.value) : props.skill.lvl;
+	if (props.onUpdate) {
+		const updatedLevel = props.onUpdate(props.skill, value);
+		props.skill.lvl = updatedLevel;
+	} else {
+		props.skill.lvl = value;
+	}
+}
 </script>
 
 <template>
@@ -38,7 +49,7 @@ const level = computed({
 		<td class="border-x-4 border-red-500 p-1 lg:text-sm text-xs">{{ skill.name }} ({{ skill.stat }})</td>
 		<td class="border-r-4 border-red-500 p-1 text-center">
 			<input v-if="editable" v-model.number="level" class="w-full text-center hover:bg-gray-200" type="number"
-				:min="minLevel" :max="maxLevel" />
+				:min="minLevel" :max="maxLevel" @blur="handleBlur" />
 			<span v-else>{{ skill.lvl }}</span>
 		</td>
 		<td class="border-r-4 border-red-500 p-1 text-center">{{ stat }}</td>
