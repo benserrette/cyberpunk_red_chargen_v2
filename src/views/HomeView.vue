@@ -386,10 +386,14 @@ const roleLifepathSelections = ref<Record<string, number>>({});
 function buildLifepathPath(startingTable: LifepathTable | undefined, selections: Record<string, number>) {
     const path: LifepathRow[] = [];
     const tableOccurrences: Record<string, number> = {};
+    const repeatOverrides: Record<string, number[]> = {};
 
     function walkTable(table: LifepathTable) {
         let repeat = 1;
-        if (table.repeat === "1d10-7") {
+        const overrideQueue = repeatOverrides[table.name];
+        if (overrideQueue && overrideQueue.length > 0) {
+            repeat = overrideQueue.shift() ?? 1;
+        } else if (table.repeat === "1d10-7") {
             repeat = Math.floor(Math.random() * 4);
         } else {
             repeat = table.repeat as number;
@@ -407,6 +411,10 @@ function buildLifepathPath(startingTable: LifepathTable | undefined, selections:
             const row = table.rows[selectedIndex];
             path.push(new LifepathRow({ ...row }));
             if (row.next_table) {
+                if (row.next_table_repeat !== undefined) {
+                    repeatOverrides[row.next_table.name] ??= [];
+                    repeatOverrides[row.next_table.name].push(row.next_table_repeat);
+                }
                 walkTable(row.next_table);
                 if (table.next_table) {
                     walkTable(table.next_table);
