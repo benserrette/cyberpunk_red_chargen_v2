@@ -416,10 +416,6 @@ function buildLifepathPath(startingTable: LifepathTable | undefined, selections:
                     repeatOverrides[row.next_table.name].push(row.next_table_repeat);
                 }
                 walkTable(row.next_table);
-                if (table.next_table) {
-                    walkTable(table.next_table);
-                }
-                return;
             }
         }
         if (table.next_table) {

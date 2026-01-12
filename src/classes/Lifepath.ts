@@ -167,10 +167,6 @@ class LifepathTable {
                     repeatOverrides[row.next_table.name].push(row.next_table_repeat);
                 }
                 row.next_table.walkPath(path, repeatOverrides);
-                if (this.next_table) {
-                    this.next_table.walkPath(path, repeatOverrides);
-                }
-                return;
             }
         }
         if (this.next_table) {
