@@ -14,7 +14,7 @@ const props = defineProps<{
     editable?: boolean;
     minLevel?: (skill: Skill) => number;
     maxLevel?: number;
-    onSkillUpdate?: (skill: Skill, level: number) => void;
+    onSkillUpdate?: (skill: Skill, level: number) => number;
 }>();
 
 const { char, category } = props;

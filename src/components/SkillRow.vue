@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
 	editable?: boolean
 	minLevel?: number
 	maxLevel?: number
-	onUpdate?: (skill: Skill, level: number) => void
+	onUpdate?: (skill: Skill, level: number) => number
 }>(), {
 	editable: false,
 	minLevel: 0,
@@ -20,10 +20,14 @@ const props = withDefaults(defineProps<{
 const level = computed({
 	get: () => props.skill.lvl,
 	set: (value) => {
+		const nextValue = Number(value);
 		if (props.onUpdate) {
-			props.onUpdate(props.skill, Number(value));
+			const updatedLevel = props.onUpdate(props.skill, nextValue);
+			if (updatedLevel !== nextValue) {
+				props.skill.lvl = updatedLevel;
+			}
 		} else {
-			props.skill.lvl = Number(value);
+			props.skill.lvl = nextValue;
 		}
 	}
 })

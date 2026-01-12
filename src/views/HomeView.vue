@@ -563,9 +563,9 @@ function randomizeHandle() { char.value.randomizeName(); }
 
 function updateSkillLevel(skill: Skill, level: number) {
     if (!can_change_skills.value) {
-        return;
+        return skill.lvl;
     }
-    char.value.setSkillLevel(skill.getKey(), level);
+    return char.value.setSkillLevel(skill.getKey(), level);
 }
 
 
