@@ -14,6 +14,7 @@ const props = defineProps<{
     editable?: boolean;
     minLevel?: (skill: Skill) => number;
     maxLevel?: number;
+    canIncrement?: (skill: Skill) => boolean;
     onSkillUpdate?: (skill: Skill, level: number) => number;
 }>();
 
@@ -54,6 +55,7 @@ const filtered_skills = computed(() => {
         </tr>
         <SkillRow v-for="skill of filtered_skills" class="" :skill="skill" :stat="char.stats[skill.stat]"
             :editable="props.editable" :min-level="props.minLevel ? props.minLevel(skill) : 0"
-            :max-level="props.maxLevel ?? 6" :on-update="props.onSkillUpdate" />
+            :max-level="props.maxLevel ?? 6" :can-increment="props.canIncrement ? props.canIncrement(skill) : true"
+            :on-update="props.onSkillUpdate" />
     </table>
 </template>

@@ -9,6 +9,7 @@ const props = defineProps<{
 	min?: number
 	max?: number
 	disabled?: boolean
+	canIncrement?: boolean
 }>();
 
 const emit = defineEmits<{
@@ -19,7 +20,10 @@ const minValue = computed(() => props.min ?? 0);
 const maxValue = computed(() => props.max ?? 6);
 
 const canDecrement = computed(() => !props.disabled && props.value > minValue.value);
-const canIncrement = computed(() => !props.disabled && props.value < maxValue.value);
+const canIncrement = computed(() => {
+	const incrementAllowed = props.canIncrement ?? true;
+	return !props.disabled && incrementAllowed && props.value < maxValue.value;
+});
 
 function increment() {
 	if (!canIncrement.value) {

@@ -231,6 +231,13 @@ const minSkillLevel = (skill: Skill) => {
     }
     return 0;
 }
+const canIncrementSkill = (skill: Skill) => {
+    if (!can_change_skills.value) {
+        return false;
+    }
+    const cost = skill.x2 ? 2 : 1;
+    return remaining_skill_points.value >= cost;
+}
 
 
 // ##      ## ########    ###    ########   #######  ##    ##  ######  
@@ -698,12 +705,12 @@ generateCharacter(); // Generates a character on page load.
             <div class=" sm:columns-2 md:columns-3 columns-1 gap-1 bg-red-500 p-1">
                 <template v-if="sort_method === 'group'">
                     <SkillsByGroup :char="char" :editable="can_change_skills" :min-level="minSkillLevel"
-                        :on-skill-update="updateSkillLevel" :max-level="6" />
+                        :can-increment="canIncrementSkill" :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
                 <template v-else>
                     <SkillTable v-for="(chunk, index) in skillChunks" :key="`skill_chunk_${index}`" :chunk :char
-                        :editable="can_change_skills" :min-level="minSkillLevel" :on-skill-update="updateSkillLevel"
-                        :max-level="6" />
+                        :editable="can_change_skills" :min-level="minSkillLevel" :can-increment="canIncrementSkill"
+                        :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
             </div>
         </div>

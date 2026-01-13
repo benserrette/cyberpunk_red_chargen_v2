@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
 	editable?: boolean
 	minLevel?: number
 	maxLevel?: number
+	canIncrement?: boolean
 	onUpdate?: (skill: Skill, level: number) => number
 }>(), {
 	editable: false,
@@ -33,6 +34,7 @@ function updateLevel(value: number) {
 		<td class="border-x-4 border-red-500 p-1 lg:text-sm text-xs">{{ skill.name }} ({{ skill.stat }})</td>
 		<td class="border-r-4 border-red-500 p-1 text-center">
 			<SkillLevelStepper :value="skill.lvl" :min="minLevel" :max="maxLevel" :disabled="!editable"
+				:can-increment="canIncrement"
 				@change="updateLevel" />
 		</td>
 		<td class="border-r-4 border-red-500 p-1 text-center">{{ stat }}</td>
