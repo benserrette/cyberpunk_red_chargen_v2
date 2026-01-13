@@ -5,7 +5,7 @@
  * generation logic. UI components read the same Skill instances to display
  * level, associated stat, and special rules like x2 costs.
  */
-import { Stat } from "@/data";
+import { Stat } from "@/data/stats";
 
 /**
  * Represents a character skill and its current rank.
