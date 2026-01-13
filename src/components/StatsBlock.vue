@@ -2,14 +2,12 @@
 import TextField from '@/components/TextField.vue'
 import LevelStepper from '@/components/LevelStepper.vue'
 import { withDefaults } from 'vue'
-// import type { Stat } from '@/types'
 
 /**
  * Grid of stat inputs with fixed or editable behavior.
  */
 const props = withDefaults(
     defineProps<{
-        // stats?: Record<string, number>,
         modelValue: Record<string, number>
         fixed?: boolean
         canIncrement?: (stat: StatKey, value: number) => boolean
@@ -20,7 +18,6 @@ const props = withDefaults(
 )
 const emit = defineEmits(['update:modelValue'])
 
-// const stats_model = defineModel();
 
 type StatKey = 'INT' | 'REF' | 'DEX' | 'TECH' | 'COOL' | 'WILL' | 'LUCK' | 'MOVE' | 'BODY' | 'EMP';
 
@@ -39,17 +36,6 @@ function canIncrementStat(stat: StatKey) {
     return props.canIncrement(stat, statValue(stat));
 }
 
-// const updated_stats = computed(() => {
-//     let stats = Object.entries(stats_model).reduce((acc, [key, value]) => {
-//         acc[key] = value.toString()
-//         return acc
-//     }, {} as Record<string, string>)
-
-//     // stats["EMP"] = `${stats_model["current_EMP"]} of ${props.stats["EMP"]}`
-//     // delete stats["current_EMP"]
-//     // stats["LUCK"] = `${props.stats["LUCK"]} of ${props.stats["LUCK"]}`
-//     return stats
-// })
 </script>
 
 <template>
