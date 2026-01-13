@@ -788,6 +788,54 @@ export class Character {
         }
     }
     /**
+     * Return the minimum level required for a skill under Complete Package rules.
+     */
+    getMinimumSkillLevel(skill: Skill): number {
+        if (RequiredSkills.includes(skill.name)) {
+            return 2;
+        }
+        return 0;
+    }
+    /**
+     * Calculate the total skill points spent for the current skill levels.
+     */
+    getSkillPointsSpent(): number {
+        let spent = 0;
+        for (const skill of Object.values(this.skills)) {
+            spent += skill.lvl * (skill.x2 ? 2 : 1);
+        }
+        return spent;
+    }
+    /**
+     * Calculate remaining skill points based on current allocations.
+     */
+    getRemainingSkillPoints(): number {
+        return this.skill_points - this.getSkillPointsSpent();
+    }
+    /**
+     * Update a skill level while enforcing limits and available points.
+     */
+    setSkillLevel(skillKey: string, level: number): number {
+        const skill = this.skills[skillKey];
+        if (!skill) {
+            return 0;
+        }
+        const minLevel = this.getMinimumSkillLevel(skill);
+        const normalized = Math.max(minLevel, Math.min(6, Math.floor(level)));
+        const currentCost = skill.lvl * (skill.x2 ? 2 : 1);
+        const spentWithoutSkill = this.getSkillPointsSpent() - currentCost;
+        const newCost = normalized * (skill.x2 ? 2 : 1);
+        if (spentWithoutSkill + newCost > this.skill_points) {
+            const remaining = this.skill_points - spentWithoutSkill;
+            const maxLevel = Math.floor(remaining / (skill.x2 ? 2 : 1));
+            const clamped = Math.max(minLevel, Math.min(6, maxLevel));
+            skill.lvl = clamped;
+            return clamped;
+        }
+        skill.lvl = normalized;
+        return normalized;
+    }
+    /**
      * Allocate skill points based on creation method and role tables.
      */
     randomizeSkills() {
@@ -807,8 +855,10 @@ export class Character {
             }
             for (const key in this.skills) {
                 if (required_skills.includes(this.skills[key].name)) {
-                    this.skills[key].lvl += 2;
-                    skill_points -= 2;
+                    const skill = this.skills[key];
+                    const cost = (skill.x2 ? 2 : 1) * 2;
+                    skill.lvl += 2;
+                    skill_points -= cost;
                 }
             }
 
@@ -838,7 +888,7 @@ export class Character {
                         skill_points -= 2;
                     }
                     else {
-                        skill_points -= 2;
+                        skill_points -= 1;
                     }
                     skill.lvl += 1;
                 }
