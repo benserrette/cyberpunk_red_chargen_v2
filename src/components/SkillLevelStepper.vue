@@ -38,12 +38,14 @@ function decrement() {
 
 <template>
 	<div class="flex items-center justify-center gap-2">
-		<button type="button" class="px-2 py-1 border border-red-500 text-xs" :disabled="!canDecrement"
+		<button v-if="!disabled" type="button" class="px-2 py-1 text-xs transition-transform"
+			:class="canDecrement ? 'active:translate-y-0.5' : 'text-gray-400 cursor-not-allowed'" :disabled="!canDecrement"
 			@click="decrement">
 			▼
 		</button>
 		<span class="min-w-[1.5rem] text-center">{{ value }}</span>
-		<button type="button" class="px-2 py-1 border border-red-500 text-xs" :disabled="!canIncrement"
+		<button v-if="!disabled" type="button" class="px-2 py-1 text-xs transition-transform"
+			:class="canIncrement ? 'active:translate-y-0.5' : 'text-gray-400 cursor-not-allowed'" :disabled="!canIncrement"
 			@click="increment">
 			▲
 		</button>
