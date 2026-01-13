@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 /**
- * Displays a skill level with increment/decrement controls.
+ * Displays a numeric level with increment/decrement controls.
  */
 const props = defineProps<{
 	value: number
@@ -18,25 +18,26 @@ const emit = defineEmits<{
 
 const minValue = computed(() => props.min ?? 0);
 const maxValue = computed(() => props.max ?? 6);
+const numericValue = computed(() => Number(props.value));
 
-const canDecrement = computed(() => !props.disabled && props.value > minValue.value);
+const canDecrement = computed(() => !props.disabled && numericValue.value > minValue.value);
 const canIncrement = computed(() => {
 	const incrementAllowed = props.canIncrement ?? true;
-	return !props.disabled && incrementAllowed && props.value < maxValue.value;
+	return !props.disabled && incrementAllowed && numericValue.value < maxValue.value;
 });
 
 function increment() {
 	if (!canIncrement.value) {
 		return;
 	}
-	emit('change', props.value + 1);
+	emit('change', numericValue.value + 1);
 }
 
 function decrement() {
 	if (!canDecrement.value) {
 		return;
 	}
-	emit('change', props.value - 1);
+	emit('change', numericValue.value - 1);
 }
 </script>
 
