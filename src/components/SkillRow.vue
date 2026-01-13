@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Skill } from '@/classes/Skill';
 import { withDefaults } from 'vue';
-import SkillLevelStepper from '@/components/SkillLevelStepper.vue';
+import LevelStepper from '@/components/LevelStepper.vue';
 /**
  * Table row for displaying a single skill and its derived base value.
  */
@@ -33,7 +33,7 @@ function updateLevel(value: number) {
 	<tr class="border-b-4 border-red-500">
 		<td class="border-x-4 border-red-500 p-1 lg:text-sm text-xs">{{ skill.name }} ({{ skill.stat }})</td>
 		<td class="border-r-4 border-red-500 p-1 text-center">
-			<SkillLevelStepper :value="skill.lvl" :min="minLevel" :max="maxLevel" :disabled="!editable"
+			<LevelStepper :value="skill.lvl" :min="minLevel" :max="maxLevel" :disabled="!editable"
 				:can-increment="canIncrement"
 				@change="updateLevel" />
 		</td>

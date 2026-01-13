@@ -194,11 +194,15 @@ const derived_stats = computed(() => {
 /**
  * Computed getter/setter for bulk stat editing, including current EMP.
  */
+const statKeys = ['INT', 'REF', 'DEX', 'TECH', 'COOL', 'WILL', 'LUCK', 'MOVE', 'BODY', 'EMP'] as const;
+
+type StatKey = 'INT' | 'REF' | 'DEX' | 'TECH' | 'COOL' | 'WILL' | 'LUCK' | 'MOVE' | 'BODY' | 'EMP';
+
 const stats_block = computed({
     get: () => {
         const stats: Record<string, number> = {}
-        for (const stat in char.value.stats) {
-            stats[stat] = char.value.stats[stat]
+        for (const stat of statKeys) {
+            stats[stat] = Number(char.value.stats[stat] ?? 0);
         }
         const current_humanity = (char.value.stats['EMP'] * 10) - char.value.getHumanityLoss();
         const emp = Math.floor(current_humanity / 10);
@@ -207,8 +211,11 @@ const stats_block = computed({
         return stats
     },
     set: (value) => {
-        for (const stat in value) {
-            char.value.stats[stat] = value[stat]
+        for (const stat of statKeys) {
+            if (value[stat] === undefined) {
+                continue;
+            }
+            char.value.stats[stat] = Number(value[stat]);
         }
     }
 })
@@ -218,6 +225,15 @@ const remaining_stat_points = computed(() => {
 const can_change_stats = computed(() => {
     return creation_method.value == 'complete'
 })
+const canIncrementStat = (stat: StatKey, value: number) => {
+    if (!can_change_stats.value) {
+        return false;
+    }
+    if (remaining_stat_points.value <= 0) {
+        return false;
+    }
+    return value < 8;
+}
 const can_change_skills = computed(() => {
     return creation_method.value == 'complete'
 })
@@ -677,7 +693,7 @@ generateCharacter(); // Generates a character on page load.
             <span v-if="can_change_stats">Points remaining: {{ remaining_stat_points }}</span>
             <CPButton @click="randomizeStats()">Randomize</CPButton>
         </CPTitle>
-        <StatsBlock v-model="stats_block" :fixed="!can_change_stats" />
+        <StatsBlock v-model="stats_block" :fixed="!can_change_stats" :can-increment="canIncrementStat" />
 
         <hr class="my-2" />
 
