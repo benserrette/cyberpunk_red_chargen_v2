@@ -42,7 +42,7 @@ import type { CreationMethod } from '@/classes/Character';
 /**
  * Reactive state for character generation controls and the active Character.
  */
-const creation_method = ref<CreationMethod>("street rat");
+const creation_method = ref<CreationMethod>("complete");
 const role = ref<Role>(Role.Medtech);
 const char = ref<Character>(new Character()) // Initializes reactive variable for character.
 
@@ -93,7 +93,7 @@ function generateCharacter() {
  *  group - group by category
  *  base - stat + level
  */
-const sort_method = ref('base'); // Initializes reactive variable for sorting method, default 'base'.
+const sort_method = ref('group'); // Initializes reactive variable for sorting method, default 'base'.
 /**
  * Divide a skills array into six chunks for multi-column display.
  */
