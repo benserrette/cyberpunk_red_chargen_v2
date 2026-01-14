@@ -78,6 +78,12 @@ const Starting_Cash: Record<CreationMethod, number> = {
 }
 
 type WeaponType = "melee" | "ranged" | "exotic";
+type ArmorLocation = "head" | "body" | "shield";
+type EquipmentRequirements = {
+    roles?: Role[];
+    cyberware?: string[];
+    stats?: Record<string, number>;
+};
 export type CreationMethod = "complete" | "edgerunner" | "street rat";
 
 /**
@@ -250,6 +256,39 @@ export class Character {
      */
     getStatPoints(): number {
         return Stat_Points[this.character_rank];
+    }
+
+    /**
+     * Read optional requirements metadata from catalog entries.
+     */
+    getEquipmentRequirements(item: unknown): EquipmentRequirements | undefined {
+        return (item as { requirements?: EquipmentRequirements }).requirements;
+    }
+    /**
+     * Validate shared requirements for gear, armor, or weapons.
+     */
+    meetsEquipmentRequirements(requirements?: EquipmentRequirements): boolean {
+        if (!requirements) {
+            return true;
+        }
+        if (requirements.roles && !requirements.roles.includes(this.role)) {
+            return false;
+        }
+        if (requirements.stats) {
+            for (const [stat, minValue] of Object.entries(requirements.stats)) {
+                if ((this.stats[stat] ?? 0) < minValue) {
+                    return false;
+                }
+            }
+        }
+        if (requirements.cyberware) {
+            for (const cyberwareName of requirements.cyberware) {
+                if (this.findCyberware(cyberwareName).length === 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
     /**
      * Calculate remaining stat points after current assignments.
@@ -661,6 +700,36 @@ export class Character {
         return allWeapons[randomIndex];
     };
     /**
+     * Check whether a weapon can be added based on cost and requirements.
+     */
+    canAddWeapon(weapon: Weapon): boolean {
+        const requirements = this.getEquipmentRequirements(weapon);
+        return this.meetsEquipmentRequirements(requirements) && this.cash >= weapon.cost;
+    }
+    /**
+     * Add a weapon while enforcing cost and requirements.
+     */
+    addWeapon(weapon: Weapon): boolean {
+        if (!this.canAddWeapon(weapon)) {
+            return false;
+        }
+        const weaponCopy = new Weapon({ ...weapon });
+        this.weapons.push(weaponCopy);
+        this.cash -= weaponCopy.cost;
+        return true;
+    }
+    /**
+     * Remove a weapon by index and refund its cost.
+     */
+    removeWeapon(index: number) {
+        const weapon = this.weapons[index];
+        if (!weapon) {
+            return;
+        }
+        this.cash += weapon.cost;
+        this.weapons.splice(index, 1);
+    }
+    /**
      * Clear armor slots and refund any spent armor costs.
      */
     resetArmor() {
@@ -672,6 +741,100 @@ export class Character {
         this.armor.body = "None";
         this.armor.head = "None";
         this.armor.shield = "None";
+    }
+    /**
+     * Find the currently equipped Bodyweight Suit, if any.
+     */
+    getBodyweightSuit(): Armor | undefined {
+        if (this.armor.body != "None" && this.armor.body.armor_type === "Bodyweight Suit") {
+            return this.armor.body;
+        }
+        if (this.armor.head != "None" && this.armor.head.armor_type === "Bodyweight Suit") {
+            return this.armor.head;
+        }
+        return undefined;
+    }
+    /**
+     * Evaluate armor swaps to enforce affordability and requirements.
+     */
+    calculateArmorSwap({ location, armor }: { location: ArmorLocation; armor: Armor | "None" }) {
+        if (armor !== "None" && armor.armor_type === "Bulletproof Shield" && location !== "shield") {
+            return undefined;
+        }
+        if (armor !== "None" && armor.armor_type !== "Bulletproof Shield" && location === "shield") {
+            return undefined;
+        }
+        if (armor !== "None") {
+            const requirements = this.getEquipmentRequirements(armor);
+            if (!this.meetsEquipmentRequirements(requirements)) {
+                return undefined;
+            }
+        }
+
+        const bodyweightSuit = this.getBodyweightSuit();
+        const isBodyweightSuit = armor !== "None" && armor.armor_type === "Bodyweight Suit";
+        const currentArmor = { ...this.armor };
+        let refund = 0;
+        let cost = armor === "None" ? 0 : armor.cost;
+
+        if (location === "shield") {
+            refund = currentArmor.shield === "None" ? 0 : currentArmor.shield.cost;
+            currentArmor.shield = armor === "None" ? "None" : armor;
+            return { refund, cost, next: currentArmor };
+        }
+
+        if (isBodyweightSuit) {
+            if (bodyweightSuit) {
+                refund = bodyweightSuit.cost;
+            } else {
+                refund += currentArmor.body === "None" ? 0 : currentArmor.body.cost;
+                refund += currentArmor.head === "None" ? 0 : currentArmor.head.cost;
+            }
+            currentArmor.body = armor;
+            currentArmor.head = armor;
+            return { refund, cost, next: currentArmor };
+        }
+
+        if (bodyweightSuit) {
+            refund = bodyweightSuit.cost;
+            currentArmor.body = "None";
+            currentArmor.head = "None";
+        } else {
+            refund = currentArmor[location] === "None" ? 0 : currentArmor[location].cost;
+        }
+
+        if (armor === "None") {
+            currentArmor[location] = "None";
+            return { refund, cost, next: currentArmor };
+        }
+
+        currentArmor[location] = armor;
+        return { refund, cost, next: currentArmor };
+    }
+    /**
+     * Check whether armor can be equipped based on cost and requirements.
+     */
+    canSetArmor({ location, armor }: { location: ArmorLocation; armor: Armor | "None" }): boolean {
+        const result = this.calculateArmorSwap({ location, armor });
+        if (!result) {
+            return false;
+        }
+        return this.cash + result.refund >= result.cost;
+    }
+    /**
+     * Set armor for a location while enforcing cost and requirements.
+     */
+    setArmor({ location, armor }: { location: ArmorLocation; armor: Armor | "None" }): boolean {
+        const result = this.calculateArmorSwap({ location, armor });
+        if (!result) {
+            return false;
+        }
+        if (this.cash + result.refund < result.cost) {
+            return false;
+        }
+        this.cash += result.refund - result.cost;
+        this.armor = result.next;
+        return true;
     }
     /**
      * Randomize armor purchases within the character's available cash.
@@ -746,6 +909,35 @@ export class Character {
             this.cash += this.gear[item].cost;
         }
         this.gear = [];
+    }
+    /**
+     * Check whether a gear item can be added based on cost and requirements.
+     */
+    canAddGear(gearItem: GearItem): boolean {
+        const requirements = this.getEquipmentRequirements(gearItem);
+        return this.meetsEquipmentRequirements(requirements) && this.cash >= gearItem.cost;
+    }
+    /**
+     * Add a gear item while enforcing cost and requirements.
+     */
+    addGear(gearItem: GearItem): boolean {
+        if (!this.canAddGear(gearItem)) {
+            return false;
+        }
+        this.gear.push(gearItem);
+        this.cash -= gearItem.cost;
+        return true;
+    }
+    /**
+     * Remove a gear item by index and refund its cost.
+     */
+    removeGear(index: number) {
+        const item = this.gear[index];
+        if (!item) {
+            return;
+        }
+        this.cash += item.cost;
+        this.gear.splice(index, 1);
     }
     /**
      * Randomize gear purchases until cash runs out or a stop condition hits.

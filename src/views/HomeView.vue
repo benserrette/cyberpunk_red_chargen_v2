@@ -11,11 +11,15 @@ import {
     ClipChart,
     AmmoTypes,
     CyberwareType,
-    Cyberware as CyberwareList
+    Cyberware as CyberwareList,
+    MeleeWeapons,
+    RangedWeapons,
+    ArmorList,
+    Gear
 } from '@/data';
 import SkillTables from '@/data/edge_runner_skill_tables';
-import { Lifepath, LifepathRow, LifepathTable, Skill, Character, Cyberware } from '@/classes';
-import type { WeaponAttachment, AmmoType, Armor } from '@/types'
+import { Lifepath, LifepathRow, LifepathTable, Skill, Character, Cyberware, Weapon } from '@/classes';
+import type { WeaponAttachment, AmmoType, Armor, GearItem } from '@/types'
 import TextField from '@/components/TextField.vue';
 import TextFieldRow from '@/components/TextFieldRow.vue'
 import SkillTable from '@/components/SkillTable.vue'
@@ -587,6 +591,70 @@ function randomizeArmor() {
     char.value.randomizeArmor();
 }
 
+const weapon_catalog = computed(() => {
+    return [...MeleeWeapons, ...RangedWeapons].sort((a, b) => a.name.localeCompare(b.name));
+});
+const gear_catalog = computed(() => {
+    return Object.values(Gear).sort((a, b) => a.name.localeCompare(b.name));
+});
+const armor_location = ref<"body" | "head" | "shield">("body");
+const armor_to_add = ref<Armor | "None">("None");
+const armor_options = computed(() => {
+    const base = ArmorList.filter((armor) => {
+        if (armor_location.value === "shield") {
+            return armor.armor_type === "Bulletproof Shield";
+        }
+        return armor.armor_type !== "Bulletproof Shield";
+    }).sort((a, b) => a.armor_type.localeCompare(b.armor_type));
+    return ["None", ...base] as (Armor | "None")[];
+});
+const weapon_to_add = ref<Weapon | undefined>(undefined);
+const gear_to_add = ref<GearItem | undefined>(undefined);
+const can_apply_armor = computed(() => {
+    return char.value.canSetArmor({ location: armor_location.value, armor: armor_to_add.value });
+});
+const can_add_weapon = computed(() => {
+    if (!weapon_to_add.value) {
+        return false;
+    }
+    return char.value.canAddWeapon(weapon_to_add.value);
+});
+const can_add_gear = computed(() => {
+    if (!gear_to_add.value) {
+        return false;
+    }
+    return char.value.canAddGear(gear_to_add.value);
+});
+
+function applyArmorSelection() {
+    char.value.setArmor({ location: armor_location.value, armor: armor_to_add.value });
+}
+function removeArmor(location: "body" | "head" | "shield") {
+    char.value.setArmor({ location, armor: "None" });
+}
+function addWeapon() {
+    if (!weapon_to_add.value) {
+        return;
+    }
+    if (char.value.addWeapon(weapon_to_add.value)) {
+        weapon_to_add.value = undefined;
+    }
+}
+function removeWeapon(index: number) {
+    char.value.removeWeapon(index);
+}
+function addGear() {
+    if (!gear_to_add.value) {
+        return;
+    }
+    if (char.value.addGear(gear_to_add.value)) {
+        gear_to_add.value = undefined;
+    }
+}
+function removeGear(index: number) {
+    char.value.removeGear(index);
+}
+
 function randomizeCyberware() {
     char.value.randomizeCyberware();
 }
@@ -748,11 +816,26 @@ generateCharacter(); // Generates a character on page load.
         </div>
         <hr class="my-2" />
 
-        <CPTable title="Weapons" :headers="['Weapon', 'Description', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost']" :creation_method :randomize="randomizeWeapons">
-            <CPRow v-if="char.weapons.length <= 0">
-                <td colspan="7" class="text-center">No Weapons</td>
+        <CPTable title="Weapons" :headers="['Weapon', 'Description', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
+            :creation_method :randomize="randomizeWeapons">
+            <CPRow>
+                <td colspan="9">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select v-model="weapon_to_add" class="px-2 py-1">
+                            <option :value="undefined" selected disabled>Select Weapon</option>
+                            <option v-for="weapon in weapon_catalog" :key="`weapon_option_${weapon.name}`" :value="weapon"
+                                :disabled="!char.canAddWeapon(weapon)">
+                                {{ weapon.name }} - {{ weapon.cost }}eb
+                            </option>
+                        </select>
+                        <CPButton :disabled="!can_add_weapon" @click="addWeapon">Add</CPButton>
+                    </div>
+                </td>
             </CPRow>
-            <CPRow v-for="weapon in char.weapons" :key="`weapon_${weapon.name}`">
+            <CPRow v-if="char.weapons.length <= 0">
+                <td colspan="9" class="text-center">No Weapons</td>
+            </CPRow>
+            <CPRow v-for="(weapon, weaponIndex) in char.weapons" :key="`weapon_${weapon.name}_${weaponIndex}`">
                 <CPCell>{{ weapon.name }}</CPCell>
                 <CPCell>
                     {{ weapon.description }}
@@ -804,6 +887,9 @@ generateCharacter(); // Generates a character on page load.
                     </ul>
                 </CPCell>
                 <CPCell class="text-right">{{ weapon.cost }}eb</CPCell>
+                <CPCell class="text-right">
+                    <CPButton @click="removeWeapon(weaponIndex)">Remove</CPButton>
+                </CPCell>
             </CPRow>
         </CPTable>
         <Modal :visible="weapon_attachment_modal_visible" @close="weapon_attachment_modal_visible = false">
@@ -824,7 +910,27 @@ generateCharacter(); // Generates a character on page load.
 
         <hr class="my-2" />
 
-        <CPTable title="Armor" :headers="['Location', 'Armor', 'SP', 'Penalty', 'Cost']" :creation_method :randomize="randomizeArmor">
+        <CPTable title="Armor" :headers="['Location', 'Armor', 'SP', 'Penalty', 'Cost', 'Actions']" :creation_method
+            :randomize="randomizeArmor">
+            <CPRow>
+                <td colspan="6">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select v-model="armor_location" class="px-2 py-1">
+                            <option value="body">Body</option>
+                            <option value="head">Head</option>
+                            <option value="shield">Shield</option>
+                        </select>
+                        <select v-model="armor_to_add" class="px-2 py-1">
+                            <option v-for="armorOption in armor_options"
+                                :key="armorOption === 'None' ? 'armor_option_none' : `armor_option_${armorOption.armor_type}`"
+                                :value="armorOption" :disabled="armorOption !== 'None' && !char.canSetArmor({ location: armor_location, armor: armorOption })">
+                                {{ armorOption === 'None' ? 'None' : `${armorOption.armor_type} - ${armorOption.cost}eb` }}
+                            </option>
+                        </select>
+                        <CPButton :disabled="!can_apply_armor" @click="applyArmorSelection">Apply</CPButton>
+                    </div>
+                </td>
+            </CPRow>
             <CPRow v-for="armor, location in char.armor" :key="`armor_${location}`">
                 <CPCell>{{ location }}</CPCell>
                 <CPCell>
@@ -837,6 +943,9 @@ generateCharacter(); // Generates a character on page load.
                 <CPCell class="text-right">{{ armor == "None" || (location == "body" &&
                     armor.armor_type == "Bodyweight Suit") ?
                     "" : `${armor.cost}eb` }}</CPCell>
+                <CPCell class="text-right">
+                    <CPButton v-if="armor != 'None'" @click="removeArmor(location)">Remove</CPButton>
+                </CPCell>
             </CPRow>
         </CPTable>
         <Modal :visible="armor_modal_visible" @close="armor_modal_visible = false">
@@ -848,15 +957,32 @@ generateCharacter(); // Generates a character on page load.
         </Modal>
         <hr class="my-2" />
 
-        <CPTable title="Gear" :headers="['Item', 'Description', 'Cost']" :creation_method :randomize="randomizeGear">
-            <CPRow v-if="gear.length <= 0">
-                <td colspan="3" class="text-center">No Gear</td>
+        <CPTable title="Gear" :headers="['Item', 'Description', 'Cost', 'Actions']" :creation_method :randomize="randomizeGear">
+            <CPRow>
+                <td colspan="4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select v-model="gear_to_add" class="px-2 py-1">
+                            <option :value="undefined" selected disabled>Select Gear</option>
+                            <option v-for="gearItem in gear_catalog" :key="`gear_option_${gearItem.name}`" :value="gearItem"
+                                :disabled="!char.canAddGear(gearItem)">
+                                {{ gearItem.name }} - {{ gearItem.cost }}eb
+                            </option>
+                        </select>
+                        <CPButton :disabled="!can_add_gear" @click="addGear">Add</CPButton>
+                    </div>
+                </td>
             </CPRow>
-            <CPRow v-for="gear_item in gear" :key="`gear_${Math.random()}`">
+            <CPRow v-if="gear.length <= 0">
+                <td colspan="4" class="text-center">No Gear</td>
+            </CPRow>
+            <CPRow v-for="(gear_item, gearIndex) in gear" :key="`gear_${gear_item.name}_${gearIndex}`">
                 <CPCell>{{ gear_item.name }}</CPCell>
                 <!-- <CPCell><span class="whitespace-pre-wrap" v-html="gear_item.description"></span></CPCell> -->
                 <CPCell><span class="cursor-pointer underline decoration-dashed" @click="OpenGearModal(gear_item)">{{ gear_item.description.slice(0, 25) }}...</span></CPCell>
                 <CPCell class="text-right">{{ gear_item.cost }}eb </CPCell>
+                <CPCell class="text-right">
+                    <CPButton @click="removeGear(gearIndex)">Remove</CPButton>
+                </CPCell>
             </CPRow>
         </CPTable>
         <Modal :visible="gear_modal_visible" @close="gear_modal_visible = false">

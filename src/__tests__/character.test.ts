@@ -79,4 +79,45 @@ describe('Character', () => {
     expect(character.findCyberware('Neural Link')).toHaveLength(1);
     expect(character.hasSpeedware() || character.findCyberware('Wolvers').length > 0).toBe(true);
   });
+
+  it('adds and removes weapons and gear while enforcing cash limits', () => {
+    const character = new Character({ creation_method: 'complete', role: Role.Solo });
+    const weaponTemplate = RangedWeapons[0];
+    const gearItem = Gear.agent;
+
+    character.cash = weaponTemplate.cost;
+    expect(character.addWeapon(weaponTemplate)).toBe(true);
+    expect(character.cash).toBe(0);
+    expect(character.addWeapon(weaponTemplate)).toBe(false);
+
+    character.removeWeapon(0);
+    expect(character.cash).toBe(weaponTemplate.cost);
+
+    expect(character.addGear(gearItem)).toBe(false);
+    character.cash = gearItem.cost;
+    expect(character.addGear(gearItem)).toBe(true);
+    expect(character.cash).toBe(0);
+    character.removeGear(0);
+    expect(character.cash).toBe(gearItem.cost);
+  });
+
+  it('treats Bodyweight Suit as a single armor purchase', () => {
+    const character = new Character({ creation_method: 'complete', role: Role.Solo });
+    const suit = ArmorList.find((item) => item.armor_type === 'Bodyweight Suit');
+    const headArmor = ArmorList.find((item) => item.armor_type === 'Kevlar®');
+    if (!suit || !headArmor) {
+      throw new Error('Missing armor fixtures');
+    }
+
+    character.cash = suit.cost;
+    expect(character.setArmor({ location: 'body', armor: suit })).toBe(true);
+    expect(character.armor.body).toBe(suit);
+    expect(character.armor.head).toBe(suit);
+    expect(character.cash).toBe(0);
+
+    expect(character.setArmor({ location: 'head', armor: headArmor })).toBe(true);
+    expect(character.armor.body).toBe('None');
+    expect(character.armor.head).toBe(headArmor);
+    expect(character.cash).toBe(suit.cost - headArmor.cost);
+  });
 });
