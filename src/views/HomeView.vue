@@ -13,6 +13,7 @@ import {
     CyberwareType,
     Cyberware as CyberwareList
 } from '@/data';
+import SkillTables from '@/data/edge_runner_skill_tables';
 import { Lifepath, LifepathRow, LifepathTable, Skill, Character, Cyberware } from '@/classes';
 import type { WeaponAttachment, AmmoType, Armor } from '@/types'
 import TextField from '@/components/TextField.vue';
@@ -235,11 +236,24 @@ const canIncrementStat = (stat: StatKey, value: number) => {
     return value < 8;
 }
 const can_change_skills = computed(() => {
-    return creation_method.value == 'complete'
+    return ['complete', 'edgerunner'].includes(creation_method.value)
 })
 const remaining_skill_points = computed(() => {
     return char.value.getRemainingSkillPoints();
 })
+const edgerunnerRoleSkillSet = computed(() => {
+    if (creation_method.value !== 'edgerunner') {
+        return new Set<string>();
+    }
+    const table = SkillTables[role.value as Role] ?? {};
+    return new Set(Object.keys(table));
+})
+const canEditSkill = (skill: Skill) => {
+    if (creation_method.value !== 'edgerunner') {
+        return true;
+    }
+    return edgerunnerRoleSkillSet.value.has(skill.name);
+}
 const requiredSkillSet = new Set(RequiredSkills);
 const minSkillLevel = (skill: Skill) => {
     if (can_change_skills.value && requiredSkillSet.has(skill.name)) {
@@ -720,12 +734,14 @@ generateCharacter(); // Generates a character on page load.
             </CPTitle>
             <div class=" sm:columns-2 md:columns-3 columns-1 gap-1 bg-red-500 p-1">
                 <template v-if="sort_method === 'group'">
-                    <SkillsByGroup :char="char" :editable="can_change_skills" :min-level="minSkillLevel"
+                    <SkillsByGroup :char="char" :editable="can_change_skills" :can-edit-skill="canEditSkill"
+                        :min-level="minSkillLevel"
                         :can-increment="canIncrementSkill" :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
                 <template v-else>
                     <SkillTable v-for="(chunk, index) in skillChunks" :key="`skill_chunk_${index}`" :chunk :char
-                        :editable="can_change_skills" :min-level="minSkillLevel" :can-increment="canIncrementSkill"
+                        :editable="can_change_skills" :can-edit-skill="canEditSkill" :min-level="minSkillLevel"
+                        :can-increment="canIncrementSkill"
                         :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
             </div>
