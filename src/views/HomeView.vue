@@ -3,7 +3,6 @@ import { ref, computed, watch } from 'vue';
 import {
     Stat,
     Role,
-    CyberwareLocation,
     SkillList,
     RequiredSkills,
     SkillCategories,
@@ -391,22 +390,34 @@ function OpenCyberwareModal(cyberware: Cyberware) {
 function available_cyberware(location?: string) {
     let cyberware = [];
     if (location === undefined) {
-        cyberware = Object.values(CyberwareList).filter(cyberware => char.value.canInstallCyberware({ cyberware: cyberware, returning: true }));
+        cyberware = Object.values(CyberwareList);
     }
     else {
-        cyberware = Object.values(CyberwareList).filter(cyberware => cyberware.body_location.includes(location) && char.value.canInstallCyberware({ cyberware: cyberware, returning: true }));
+        cyberware = Object.values(CyberwareList).filter(cyberware => cyberware.body_location.includes(location));
     }
     cyberware = cyberware.sort((a, b) => a.name.localeCompare(b.name));
     return cyberware;
 }
 
-const cyberware_to_add = ref<Cyberware | undefined>(undefined)
-function addCyberware() {
-    if (cyberware_to_add.value === undefined) {
+function canInstallCyberwareOption(cyberware: Cyberware, location?: string) {
+    return char.value.canInstallCyberware({ cyberware, returning: true, location });
+}
+
+const cyberware_to_add = ref<Record<string, Cyberware | undefined>>({})
+function canAddCyberwareAt(location: string) {
+    const selection = cyberware_to_add.value[location];
+    return selection !== undefined && canInstallCyberwareOption(selection, location);
+}
+function addCyberware(location: string) {
+    const selection = cyberware_to_add.value[location];
+    if (selection === undefined) {
         return;
     }
-    char.value.installCyberware({ cyberware: new Cyberware({ ...cyberware_to_add.value }) })
-    cyberware_to_add.value = undefined;
+    char.value.installCyberware({
+        cyberware: new Cyberware({ ...selection }),
+        location
+    })
+    cyberware_to_add.value[location] = undefined;
 }
 
 function uninstallCyberware(id: string) {
@@ -818,20 +829,18 @@ generateCharacter(); // Generates a character on page load.
 
         <CPTable title="Weapons" :headers="['Weapon', 'Description', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
             :creation_method :randomize="randomizeWeapons">
-            <CPRow>
-                <td colspan="9">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <select v-model="weapon_to_add" class="px-2 py-1">
-                            <option :value="undefined" selected disabled>Select Weapon</option>
-                            <option v-for="weapon in weapon_catalog" :key="`weapon_option_${weapon.name}`" :value="weapon"
-                                :disabled="!char.canAddWeapon(weapon)">
-                                {{ weapon.name }} - {{ weapon.cost }}eb
-                            </option>
-                        </select>
-                        <CPButton :disabled="!can_add_weapon" @click="addWeapon">Add</CPButton>
-                    </div>
-                </td>
-            </CPRow>
+            <template #controls>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select v-model="weapon_to_add" class="px-2 py-1">
+                        <option :value="undefined" selected disabled>Select Weapon</option>
+                        <option v-for="weapon in weapon_catalog" :key="`weapon_option_${weapon.name}`" :value="weapon"
+                            :disabled="!char.canAddWeapon(weapon)">
+                            {{ weapon.name }} - {{ weapon.cost }}eb
+                        </option>
+                    </select>
+                    <CPButton :disabled="!can_add_weapon" @click="addWeapon">Add</CPButton>
+                </div>
+            </template>
             <CPRow v-if="char.weapons.length <= 0">
                 <td colspan="9" class="text-center">No Weapons</td>
             </CPRow>
@@ -912,25 +921,23 @@ generateCharacter(); // Generates a character on page load.
 
         <CPTable title="Armor" :headers="['Location', 'Armor', 'SP', 'Penalty', 'Cost', 'Actions']" :creation_method
             :randomize="randomizeArmor">
-            <CPRow>
-                <td colspan="6">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <select v-model="armor_location" class="px-2 py-1">
-                            <option value="body">Body</option>
-                            <option value="head">Head</option>
-                            <option value="shield">Shield</option>
-                        </select>
-                        <select v-model="armor_to_add" class="px-2 py-1">
-                            <option v-for="armorOption in armor_options"
-                                :key="armorOption === 'None' ? 'armor_option_none' : `armor_option_${armorOption.armor_type}`"
-                                :value="armorOption" :disabled="armorOption !== 'None' && !char.canSetArmor({ location: armor_location, armor: armorOption })">
-                                {{ armorOption === 'None' ? 'None' : `${armorOption.armor_type} - ${armorOption.cost}eb` }}
-                            </option>
-                        </select>
-                        <CPButton :disabled="!can_apply_armor" @click="applyArmorSelection">Apply</CPButton>
-                    </div>
-                </td>
-            </CPRow>
+            <template #controls>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select v-model="armor_location" class="px-2 py-1">
+                        <option value="body">Body</option>
+                        <option value="head">Head</option>
+                        <option value="shield">Shield</option>
+                    </select>
+                    <select v-model="armor_to_add" class="px-2 py-1">
+                        <option v-for="armorOption in armor_options"
+                            :key="armorOption === 'None' ? 'armor_option_none' : `armor_option_${armorOption.armor_type}`"
+                            :value="armorOption" :disabled="armorOption !== 'None' && !char.canSetArmor({ location: armor_location, armor: armorOption })">
+                            {{ armorOption === 'None' ? 'None' : `${armorOption.armor_type} - ${armorOption.cost}eb` }}
+                        </option>
+                    </select>
+                    <CPButton :disabled="!can_apply_armor" @click="applyArmorSelection">Apply</CPButton>
+                </div>
+            </template>
             <CPRow v-for="armor, location in char.armor" :key="`armor_${location}`">
                 <CPCell>{{ location }}</CPCell>
                 <CPCell>
@@ -958,20 +965,18 @@ generateCharacter(); // Generates a character on page load.
         <hr class="my-2" />
 
         <CPTable title="Gear" :headers="['Item', 'Description', 'Cost', 'Actions']" :creation_method :randomize="randomizeGear">
-            <CPRow>
-                <td colspan="4">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <select v-model="gear_to_add" class="px-2 py-1">
-                            <option :value="undefined" selected disabled>Select Gear</option>
-                            <option v-for="gearItem in gear_catalog" :key="`gear_option_${gearItem.name}`" :value="gearItem"
-                                :disabled="!char.canAddGear(gearItem)">
-                                {{ gearItem.name }} - {{ gearItem.cost }}eb
-                            </option>
-                        </select>
-                        <CPButton :disabled="!can_add_gear" @click="addGear">Add</CPButton>
-                    </div>
-                </td>
-            </CPRow>
+            <template #controls>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select v-model="gear_to_add" class="px-2 py-1">
+                        <option :value="undefined" selected disabled>Select Gear</option>
+                        <option v-for="gearItem in gear_catalog" :key="`gear_option_${gearItem.name}`" :value="gearItem"
+                            :disabled="!char.canAddGear(gearItem)">
+                            {{ gearItem.name }} - {{ gearItem.cost }}eb
+                        </option>
+                    </select>
+                    <CPButton :disabled="!can_add_gear" @click="addGear">Add</CPButton>
+                </div>
+            </template>
             <CPRow v-if="gear.length <= 0">
                 <td colspan="4" class="text-center">No Gear</td>
             </CPRow>
@@ -1009,24 +1014,16 @@ generateCharacter(); // Generates a character on page load.
                 <span class="font-bold">Total Humanity Loss: </span>
                 <span>{{ char.getHumanityLoss() }}</span>
             </div>
-            <div v-if="creation_method == 'complete'">
-                <select v-model="cyberware_to_add" class="px-2 py-1 align-text-bottom">
-                    <option :value="undefined" selected disabled>Select Cyberware</option>
-                    <option v-for="cyberware in available_cyberware()" :value="cyberware">{{ cyberware.name }} - {{ cyberware.cost }}eb</option>
-                </select>
-                &nbsp;
-                <CPButton @click="addCyberware">Add</CPButton>
-            </div>
             <CPButton v-if="creation_method == 'complete'" @click="randomizeCyberware()">Randomize</CPButton>
         </CPTitle>
         <div class="grid grid-cols-2 items-stretch border-solid border-b-4 border-red-500">
-            <div class="h-full flex flex-col" v-for="(cyberware, location) in char.cyberware">
+            <div class="h-full flex flex-col" v-for="(cyberware, location) in char.cyberware" :key="`cyberware_location_${location}`">
                 <CPTitle>{{ location }} <span v-html="cyberware_icons[location]"></span></CPTitle>
                 <div class="flex-1 border-solid border-4 border-b-0 border-red-500 px-4 py-2">
                     <template v-if="cyberware === undefined || (cyberware.placeholder && cyberware.slotted_options.length == 0)">
-                        &nbsp;<!-- <div class="text-center">No Cyberware installed in {{ location }}</div> -->
+                        <div class="text-sm text-gray-300">No Cyberware installed.</div>
                     </template>
-                    <template v-if="!(cyberware === undefined || (cyberware.placeholder && cyberware.slotted_options.length == 0))">
+                    <template v-else>
                         <template v-if="cyberware.placeholder === false">
                             <div class="flex justify-between">
                                 <span class="cursor-pointer underline decoration-dashed" @click="OpenCyberwareModal(cyberware)">{{ cyberware.name }}</span>
@@ -1046,8 +1043,16 @@ generateCharacter(); // Generates a character on page load.
                             </template>
                         </template>
                     </template>
-                    <div>
-
+                    <div v-if="creation_method == 'complete'" class="mt-2 flex flex-wrap items-center gap-2">
+                        <select v-model="cyberware_to_add[location]" class="px-2 py-1 align-text-bottom">
+                            <option :value="undefined" selected disabled>Add Cyberware</option>
+                            <option v-for="cyberwareOption in available_cyberware(location)"
+                                :key="`cyberware_option_${location}_${cyberwareOption.name}`" :value="cyberwareOption"
+                                :disabled="!canInstallCyberwareOption(cyberwareOption, location)">
+                                {{ cyberwareOption.name }} - {{ cyberwareOption.cost }}eb
+                            </option>
+                        </select>
+                        <CPButton :disabled="!canAddCyberwareAt(location)" @click="addCyberware(location)">Add</CPButton>
                     </div>
                 </div>
             </div>
