@@ -734,6 +734,180 @@ const lifepathSelectionsDisplay = computed(() => {
 const roleLifepathSelectionsDisplay = computed(() => {
     return buildLifepathSelections(role_lifepath.value, roleLifepathSelections.value);
 });
+const toThirdPerson = (value: string) => {
+    let text = value;
+    const replaceToken = (pattern: RegExp, replacement: string, replacementCapitalized: string) => {
+        text = text.replace(pattern, (match) => {
+            const isCapitalized = match[0] === match[0].toUpperCase();
+            return isCapitalized ? replacementCapitalized : replacement;
+        });
+    };
+    replaceToken(/\byou're\b/gi, "they're", "They're");
+    replaceToken(/\byou've\b/gi, "they've", "They've");
+    replaceToken(/\byou'll\b/gi, "they'll", "They'll");
+    replaceToken(/\byou'd\b/gi, "they'd", "They'd");
+    replaceToken(/\byourself\b/gi, "themselves", "Themselves");
+    replaceToken(/\byours\b/gi, "theirs", "Theirs");
+    replaceToken(/\byour\b/gi, "their", "Their");
+    replaceToken(/\byou\b/gi, "they", "They");
+    return text;
+};
+const normalizeSentenceFragment = (
+    value: string,
+    { lowerCaseStart = false, thirdPerson = false }: { lowerCaseStart?: boolean; thirdPerson?: boolean } = {}
+) => {
+    let text = value.trim();
+    if (thirdPerson) {
+        text = toThirdPerson(text);
+    }
+    text = text.replace(/[.]+$/g, '');
+    if (lowerCaseStart && text.length > 0) {
+        text = text[0].toLowerCase() + text.slice(1);
+    }
+    return text;
+};
+const hashSeed = (value: string) => {
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+        hash = Math.imul(31, hash) + value.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash >>> 0;
+};
+const makeRng = (seed: number) => {
+    let state = seed >>> 0;
+    return () => {
+        state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+        return state / 0x100000000;
+    };
+};
+const pickRandomEntries = (entries: LifepathSelectionEntry[], count: number, seed: number) => {
+    const copy = [...entries];
+    const rng = makeRng(seed);
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy.slice(0, Math.min(count, copy.length));
+};
+const findEntryByTable = (entries: LifepathSelectionEntry[], tableName: string) => {
+    return entries.find((entry) => entry.event?.table?.name === tableName);
+};
+const getInstalledCyberware = (cyberware: Record<string, Cyberware | undefined>) => {
+    const items: Cyberware[] = [];
+    const pushItem = (item: Cyberware) => {
+        if (item.placeholder) {
+            return;
+        }
+        items.push(item);
+        if (item.slotted_options?.length) {
+            for (const option of item.slotted_options) {
+                pushItem(option);
+            }
+        }
+    };
+    for (const entry of Object.values(cyberware)) {
+        if (!entry) {
+            continue;
+        }
+        pushItem(entry);
+    }
+    return items;
+};
+const character_summary = computed(() => {
+    const skills = Object.values(char.value.skills);
+    if (skills.length === 0) {
+        return "Generate a character to see a summary.";
+    }
+    const baseSkills = skills.map((skill) => ({
+        skill,
+        base: (char.value.stats[skill.stat] ?? 0) + (skill.lvl ?? 0)
+    }));
+    baseSkills.sort((a, b) => b.base - a.base || a.skill.name.localeCompare(b.skill.name));
+    const top = baseSkills[0];
+    const roleSkillTable = SkillTables[role.value as Role] ?? {};
+    const roleSkillNames = new Set(Object.keys(roleSkillTable));
+    const lowCandidates = roleSkillNames.size > 0
+        ? baseSkills.filter((entry) => roleSkillNames.has(entry.skill.name))
+        : baseSkills;
+    const lowSorted = [...lowCandidates].sort((a, b) => a.base - b.base || a.skill.name.localeCompare(b.skill.name));
+    const low = lowSorted[0] ?? baseSkills[baseSkills.length - 1];
+    const handle = char.value.handle?.trim();
+    const nameLead = handle && handle !== "Unknown" ? `${handle} is a` : "This character is a";
+    let summary = `${nameLead} ${role.value} who shines in ${top.skill.name} (Base ${top.base})`;
+    if (low) {
+        summary += ` but struggles with ${low.skill.name} (Base ${low.base})`;
+    }
+    summary += ".";
+    const baseEntries = lifepathSelectionsDisplay.value;
+    const roleEntries = roleLifepathSelectionsDisplay.value;
+    const personalityEntry = findEntryByTable(baseEntries, "What are you like?");
+    const goalEntry = findEntryByTable(baseEntries, "Your Life Goals");
+    const originEntry = findEntryByTable(baseEntries, "Cultural Origin");
+    const valueEntries = [
+        findEntryByTable(baseEntries, "Most valued person in your life?"),
+        findEntryByTable(baseEntries, "What do you value most?"),
+        findEntryByTable(baseEntries, "Most valued possession you own?")
+    ].filter((entry): entry is LifepathSelectionEntry => Boolean(entry));
+    const seed = hashSeed(`${char.value.handle}|${role.value}|${baseEntries.length}|${roleEntries.length}`);
+    const baseExtras = baseEntries.filter((entry) => entry.event?.table?.name !== "What are you like?" && entry.event?.table?.name !== "Your Life Goals");
+    let extras: LifepathSelectionEntry[] = [];
+    if (roleEntries.length > 0) {
+        const rolePick = pickRandomEntries(roleEntries, 1, seed);
+        const remainingPool = baseExtras.filter((entry) => !rolePick.includes(entry));
+        extras = [...rolePick, ...pickRandomEntries(remainingPool, 1, seed + 2)];
+    } else {
+        extras = pickRandomEntries(baseExtras, 2, seed);
+    }
+    const sentences: string[] = [];
+    if (originEntry || personalityEntry || valueEntries.length > 0) {
+        const fragments: string[] = [];
+        if (originEntry) {
+            fragments.push(normalizeSentenceFragment(originEntry.event.value, { lowerCaseStart: true, thirdPerson: true }));
+        }
+        if (personalityEntry) {
+            fragments.push(normalizeSentenceFragment(personalityEntry.event.value, {
+                lowerCaseStart: originEntry !== undefined,
+                thirdPerson: true
+            }));
+        }
+        const valueEntry = valueEntries.length > 0 ? pickRandomEntries(valueEntries, 1, seed + 1)[0] : undefined;
+        if (valueEntry) {
+            fragments.push(`value ${normalizeSentenceFragment(valueEntry.event.value, { lowerCaseStart: true, thirdPerson: true })}`);
+        }
+        if (fragments.length === 1 && fragments[0].startsWith("value ")) {
+            sentences.push(`They ${fragments[0]}.`);
+        } else if (fragments.length > 0) {
+            const combined = fragments.join(", ").replace(", value ", ", and value ");
+            sentences.push(`They're ${combined}.`);
+        }
+    }
+    if (goalEntry) {
+        const goalText = normalizeSentenceFragment(goalEntry.event.value, { lowerCaseStart: true, thirdPerson: true });
+        sentences.push(`Their goal is to ${goalText}.`);
+    }
+    if (extras.length > 0) {
+        const extraText = extras
+            .map((entry) => normalizeSentenceFragment(entry.event.value, { thirdPerson: true }))
+            .filter((text) => text.length > 0);
+        if (extraText.length > 0) {
+            sentences.push(`Other threads: ${extraText.join(", ")}.`);
+        }
+    }
+    const cyberwareItems = getInstalledCyberware(char.value.cyberware);
+    if (cyberwareItems.length > 0) {
+        const names = Array.from(new Set(cyberwareItems.map((item) => item.name)));
+        const list = names.slice(0, 2).join(", ");
+        const suffix = names.length > 2 ? ` and ${names.length - 2} more` : "";
+        sentences.push(`Cyberware includes ${list}${suffix}.`);
+    } else {
+        sentences.push("No cyberware installed.");
+    }
+    if (sentences.length > 0) {
+        summary += ` ${sentences.join(" ")}`;
+    }
+    return summary;
+});
 function rebuildLifepathFromSelections() {
     const { path, selections } = buildLifepathPath(char.value.lifepath.starting_table, { ...lifepathSelections.value });
     lifepathSelections.value = selections;
@@ -1053,6 +1227,13 @@ generateCharacter(); // Generates a character on page load.
             </div>
         </CPTitle>
 
+        <hr class="my-2" />
+        <CPTitle class="flex justify-between pr-2">
+            <span>Character Summary</span>
+        </CPTitle>
+        <div class="border-x-4 border-b-4 border-red-500 bg-white p-3 text-sm leading-relaxed text-black">
+            {{ character_summary }}
+        </div>
         <hr class="my-2" />
         <CPTitle class="flex justify-between pr-2">
             <span>Stats</span>
