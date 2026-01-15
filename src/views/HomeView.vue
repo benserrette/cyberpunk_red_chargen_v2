@@ -46,7 +46,7 @@ import type { CreationMethod } from '@/classes/Character';
 /**
  * Reactive state for character generation controls and the active Character.
  */
-const creation_method = ref<CreationMethod>("complete");
+const creation_method = ref<CreationMethod>("edgerunner");
 const role = ref<Role>(Role.Medtech);
 const char = ref<Character>(new Character()) // Initializes reactive variable for character.
 
