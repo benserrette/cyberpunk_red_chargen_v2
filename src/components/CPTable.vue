@@ -30,7 +30,11 @@ function randomize() {
 
 <template>
     <div class="notch border-8 border-red-500 border-solid flex flex-wrap justify-between items-center gap-2">
-        <div class="ml-4 my-2 font-bold">{{ title }}</div>
+        <div class="ml-4 my-2">
+            <slot name="title">
+                <div class="font-bold">{{ title }}</div>
+            </slot>
+        </div>
         <div class="flex flex-wrap items-center gap-2 mr-2 my-2">
             <slot name="controls"></slot>
             <CPButton v-if="show_randomize_button" @click="randomize()">Randomize</CPButton>

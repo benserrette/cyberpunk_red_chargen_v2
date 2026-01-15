@@ -334,6 +334,147 @@ function OpenGearModal(gear: { name: string, description: string, cost: number }
     gear_modal_visible.value = true;
 }
 
+type CatalogItem = {
+    name: string;
+    description: string;
+    cost: number;
+    category: string;
+    skill?: string;
+    damage?: string;
+    rof?: number;
+    ammo?: string;
+    alt_fire?: string;
+    special_features?: string;
+    sp?: number | string;
+    penalty?: string;
+    location?: string;
+    prereqs?: string;
+}
+
+const catalog_modal_visible = ref(false)
+type CatalogSortKey = 'name' | 'cost'
+const catalog_sort_key = ref<CatalogSortKey>('name')
+const catalog_sort_direction = ref<'asc' | 'desc'>('asc')
+const catalog_category = ref<string | null>(null)
+const getWeaponExamples = (weapon: Weapon) => {
+    const examples = new Set<string>()
+    if (weapon.variants?.length) {
+        for (const example of weapon.variants) {
+            if (example) {
+                examples.add(example)
+            }
+        }
+    }
+    if (weapon.quality_variants) {
+        for (const [quality, example] of Object.entries(weapon.quality_variants)) {
+            if (example) {
+                const label = quality.charAt(0).toUpperCase() + quality.slice(1).toLowerCase()
+                examples.add(`${example} (${label} quality)`)
+            }
+        }
+    }
+    if (examples.size === 0 && weapon.description) {
+        examples.add(weapon.description)
+    }
+    return Array.from(examples).join(', ') || 'No examples available.'
+}
+const catalog_items = computed(() => {
+    const items: CatalogItem[] = []
+    const addItem = (name: string, description: string, cost: number, category: string, details?: Partial<CatalogItem>) => {
+        items.push({
+            name,
+            description: description?.trim() || 'No description available.',
+            cost,
+            category,
+            ...details
+        })
+    }
+
+    for (const weapon of [...MeleeWeapons, ...RangedWeapons]) {
+        const examples = getWeaponExamples(weapon)
+        addItem(weapon.name, examples, weapon.cost, 'Weapon', {
+            skill: weapon.skill,
+            damage: weapon.damage,
+            rof: weapon.rof,
+            ammo: weapon.ammo_type?.join(', ') || '',
+            alt_fire: weapon.alt_fire && weapon.alt_fire.toLowerCase() !== 'none' ? weapon.alt_fire : '',
+            special_features: weapon.special_features && weapon.special_features.toLowerCase() !== 'none' ? weapon.special_features : ''
+        })
+    }
+    for (const armor of ArmorList) {
+        const penalty = armor.penalty.length <= 0 ? 'None' : armor.penalty.map((entry) => `${entry.stat}: ${entry.penalty}`).join(', ')
+        addItem(armor.armor_type, armor.description, armor.cost, 'Armor', {
+            sp: armor.sp,
+            penalty
+        })
+    }
+    for (const gearItem of Object.values(Gear)) {
+        addItem(gearItem.name, gearItem.description, gearItem.cost, 'Gear')
+    }
+    for (const cyberware of CyberwareList) {
+        const location = cyberware.body_location.length > 0 ? cyberware.body_location.join(', ') : ''
+        const prereqs = cyberware.required_cyberware || ''
+        addItem(cyberware.name, cyberware.description, cyberware.cost, 'Cyberware', {
+            location,
+            prereqs
+        })
+    }
+    for (const attachment of Object.values(WeaponAttachments)) {
+        addItem(attachment.name, attachment.description, attachment.cost, 'Weapon Attachment')
+    }
+    for (const ammoType of AmmoTypes) {
+        addItem(ammoType.name, ammoType.description, ammoType.cost, 'Ammo')
+    }
+
+    return items
+})
+const catalog_filtered_items = computed(() => {
+    if (!catalog_category.value) {
+        return catalog_items.value
+    }
+    return catalog_items.value.filter((item) => item.category === catalog_category.value)
+})
+const catalog_sorted_items = computed(() => {
+    const items = [...catalog_filtered_items.value]
+    const direction = catalog_sort_direction.value === 'asc' ? 1 : -1
+    return items.sort((a, b) => {
+        if (catalog_sort_key.value === 'cost') {
+            return (a.cost - b.cost) * direction
+        }
+        return a.name.localeCompare(b.name) * direction
+    })
+})
+const catalog_description_label = computed(() => {
+    return catalog_category.value === 'Weapon' ? 'Examples' : 'Description'
+})
+const catalog_modal_title = computed(() => {
+    if (!catalog_category.value) {
+        return 'Item Catalog'
+    }
+    return `${catalog_category.value} Catalog`
+})
+const is_weapon_catalog = computed(() => catalog_category.value === 'Weapon')
+const is_armor_catalog = computed(() => catalog_category.value === 'Armor')
+const is_cyberware_catalog = computed(() => catalog_category.value === 'Cyberware')
+const catalogSortIndicator = (key: CatalogSortKey) => {
+    if (catalog_sort_key.value !== key) {
+        return ''
+    }
+    return catalog_sort_direction.value === 'asc' ? ' ▲' : ' ▼'
+}
+const toggleCatalogSort = (key: CatalogSortKey) => {
+    if (catalog_sort_key.value === key) {
+        catalog_sort_direction.value = catalog_sort_direction.value === 'asc' ? 'desc' : 'asc'
+        return
+    }
+    catalog_sort_key.value = key
+    catalog_sort_direction.value = 'asc'
+}
+const openCatalog = (category: string) => {
+    catalog_category.value = category
+    catalog_modal_visible.value = true
+}
+
 
 //  ######  ##    ## ########  ######## ########  
 // ##    ##  ##  ##  ##     ## ##       ##     ## 
@@ -827,8 +968,14 @@ generateCharacter(); // Generates a character on page load.
         </div>
         <hr class="my-2" />
 
-        <CPTable title="Weapons" :headers="['Weapon', 'Description', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
+        <CPTable title="Weapons" :headers="['Weapon', 'Examples', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
             :creation_method :randomize="randomizeWeapons">
+            <template #title>
+                <div class="flex items-center gap-2 font-bold">
+                    <span>Weapons</span>
+                    <CPButton @click="openCatalog('Weapon')">Catalog</CPButton>
+                </div>
+            </template>
             <template #controls>
                 <div class="flex flex-wrap items-center gap-2">
                     <select v-model="weapon_to_add" class="px-2 py-1">
@@ -847,9 +994,7 @@ generateCharacter(); // Generates a character on page load.
             <CPRow v-for="(weapon, weaponIndex) in char.weapons" :key="`weapon_${weapon.name}_${weaponIndex}`">
                 <CPCell>{{ weapon.name }}</CPCell>
                 <CPCell>
-                    {{ weapon.description }}
-                    <span v-if="weapon.quality">({{ weapon.quality.charAt(0).toUpperCase() +
-                        weapon.quality.slice(1).toLowerCase() }} quality)</span>
+                    {{ getWeaponExamples(weapon) }}
                 </CPCell>
                 <CPCell>{{ char.skills[weapon.skill].name }}</CPCell>
                 <CPCell class="text-center">{{ weapon.damage }}</CPCell>
@@ -921,6 +1066,12 @@ generateCharacter(); // Generates a character on page load.
 
         <CPTable title="Armor" :headers="['Location', 'Armor', 'SP', 'Penalty', 'Cost', 'Actions']" :creation_method
             :randomize="randomizeArmor">
+            <template #title>
+                <div class="flex items-center gap-2 font-bold">
+                    <span>Armor</span>
+                    <CPButton @click="openCatalog('Armor')">Catalog</CPButton>
+                </div>
+            </template>
             <template #controls>
                 <div class="flex flex-wrap items-center gap-2">
                     <select v-model="armor_location" class="px-2 py-1">
@@ -965,6 +1116,12 @@ generateCharacter(); // Generates a character on page load.
         <hr class="my-2" />
 
         <CPTable title="Gear" :headers="['Item', 'Description', 'Cost', 'Actions']" :creation_method :randomize="randomizeGear">
+            <template #title>
+                <div class="flex items-center gap-2 font-bold">
+                    <span>Gear</span>
+                    <CPButton @click="openCatalog('Gear')">Catalog</CPButton>
+                </div>
+            </template>
             <template #controls>
                 <div class="flex flex-wrap items-center gap-2">
                     <select v-model="gear_to_add" class="px-2 py-1">
@@ -997,6 +1154,57 @@ generateCharacter(); // Generates a character on page load.
                 <CPButton class="mt-4" @click="gear_modal_visible = false">Close</CPButton>
             </div>
         </Modal>
+        <Modal :visible="catalog_modal_visible" @close="catalog_modal_visible = false">
+            <div class="p-1">
+                <div class="flex items-center justify-between gap-4">
+                    <h2 class="text-lg font-bold">{{ catalog_modal_title }}</h2>
+                    <span class="text-xs text-gray-500">{{ catalog_sorted_items.length }} items</span>
+                </div>
+                <div class="mt-4">
+                    <table class="w-full text-sm border-collapse">
+                        <thead class="bg-black text-white">
+                            <tr>
+                                <th class="text-left border-x-4 border-red-500 p-2">
+                                    <button class="underline decoration-dashed" @click="toggleCatalogSort('name')">Name{{ catalogSortIndicator('name') }}</button>
+                                </th>
+                                <th class="text-left border-x-4 border-red-500 p-2">{{ catalog_description_label }}</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">Skill</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">Damage</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">ROF</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">Ammo</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">Alt Fire</th>
+                                <th v-if="is_weapon_catalog" class="text-left border-x-4 border-red-500 p-2">Special Features</th>
+                                <th v-if="is_armor_catalog" class="text-left border-x-4 border-red-500 p-2">SP</th>
+                                <th v-if="is_armor_catalog" class="text-left border-x-4 border-red-500 p-2">Penalty</th>
+                                <th v-if="is_cyberware_catalog" class="text-left border-x-4 border-red-500 p-2">Location</th>
+                                <th v-if="is_cyberware_catalog" class="text-left border-x-4 border-red-500 p-2">Prereqs</th>
+                                <th class="text-right border-x-4 border-red-500 p-2">
+                                    <button class="underline decoration-dashed" @click="toggleCatalogSort('cost')">Price{{ catalogSortIndicator('cost') }}</button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in catalog_sorted_items" :key="`catalog_${item.category}_${item.name}`" class="border-b border-red-500/20">
+                                <td class="p-2 align-top">{{ item.name }}</td>
+                                <td class="p-2 align-top">{{ item.description }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.skill }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.damage }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.rof }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.ammo }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.alt_fire }}</td>
+                                <td v-if="is_weapon_catalog" class="p-2 align-top">{{ item.special_features }}</td>
+                                <td v-if="is_armor_catalog" class="p-2 align-top">{{ item.sp }}</td>
+                                <td v-if="is_armor_catalog" class="p-2 align-top">{{ item.penalty }}</td>
+                                <td v-if="is_cyberware_catalog" class="p-2 align-top">{{ item.location }}</td>
+                                <td v-if="is_cyberware_catalog" class="p-2 align-top">{{ item.prereqs }}</td>
+                                <td class="p-2 text-right align-top">{{ item.cost }}eb</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <CPButton class="mt-4" @click="catalog_modal_visible = false">Close</CPButton>
+            </div>
+        </Modal>
 
         <hr class="my-2" />
         <!-- 
@@ -1009,7 +1217,10 @@ generateCharacter(); // Generates a character on page load.
  ######     ##    ########  ######## ##     ##  -->
 
         <CPTitle class="flex justify-between pr-2">
-            <span>Cyberware</span>
+            <div class="flex items-center gap-2">
+                <span>Cyberware</span>
+                <CPButton @click="openCatalog('Cyberware')">Catalog</CPButton>
+            </div>
             <div>
                 <span class="font-bold">Total Humanity Loss: </span>
                 <span>{{ char.getHumanityLoss() }}</span>
@@ -1025,18 +1236,18 @@ generateCharacter(); // Generates a character on page load.
                     </template>
                     <template v-else>
                         <template v-if="cyberware.placeholder === false">
-                            <div class="flex justify-between">
+                            <div class="flex justify-between mb-px">
                                 <span class="cursor-pointer underline decoration-dashed" @click="OpenCyberwareModal(cyberware)">{{ cyberware.name }}</span>
                                 <CPButton v-if="creation_method == 'complete'" @click="uninstallCyberware(cyberware.id)">Uninstall</CPButton>
                             </div>
                         </template>
                         <template v-if="cyberware?.slotted_options && cyberware.slotted_options.length > 0" v-for="(option, index) in cyberware.slotted_options" :key="`cyberware_${location}_${index}`">
-                            <div class="flex justify-between">
+                            <div class="flex justify-between mb-px">
                                 <span class="cursor-pointer underline decoration-dashed" @click="OpenCyberwareModal(option)">{{ option.name }}</span>
                                 <CPButton v-if="creation_method == 'complete'" @click="uninstallCyberware(option.id)">Uninstall</CPButton>
                             </div>
                             <template v-if="option?.slotted_options && option.slotted_options.length > 0" v-for="(option2, index2) in option.slotted_options" :key="`cyberware_option_${location}_${index}_${index2}`">
-                                <div class="flex justify-between">
+                                <div class="flex justify-between mb-px">
                                     <span class="cursor-pointer underline decoration-dashed" @click="OpenCyberwareModal(option2)">{{ option2.name }}</span>
                                     <CPButton v-if="creation_method == 'complete'" @click="uninstallCyberware(option.id)">Uninstall</CPButton>
                                 </div>

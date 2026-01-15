@@ -9,8 +9,8 @@
     overflow: hidden;
     position: relative;
     background-color: red;
-    padding: 4px 5px 3px 5px;
-    height: calc(1.5em + 8px);
+    padding: 2px 3px 2px 3px;
+    height: calc(1.5em + 4px);
 }
 
 
