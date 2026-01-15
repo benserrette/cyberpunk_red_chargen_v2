@@ -528,6 +528,39 @@ function OpenCyberwareModal(cyberware: Cyberware) {
     cyberware_modal_visible.value = true;
 }
 
+const confirm_modal_visible = ref(false)
+const confirm_modal_title = ref("Confirm")
+const confirm_modal_message = ref("")
+const confirm_modal_confirm_label = ref("Confirm")
+const confirm_modal_action = ref<null | (() => void)>(null)
+
+type ConfirmModalOptions = {
+    title: string
+    message: string
+    confirmLabel?: string
+    onConfirm: () => void
+}
+
+function openConfirmModal(options: ConfirmModalOptions) {
+    confirm_modal_title.value = options.title
+    confirm_modal_message.value = options.message
+    confirm_modal_confirm_label.value = options.confirmLabel ?? "Confirm"
+    confirm_modal_action.value = options.onConfirm
+    confirm_modal_visible.value = true
+}
+
+function closeConfirmModal() {
+    confirm_modal_visible.value = false
+    confirm_modal_action.value = null
+}
+
+function confirmModalAction() {
+    if (confirm_modal_action.value) {
+        confirm_modal_action.value()
+    }
+    closeConfirmModal()
+}
+
 function available_cyberware(location?: string) {
     let cyberware = [];
     if (location === undefined) {
@@ -561,8 +594,40 @@ function addCyberware(location: string) {
     cyberware_to_add.value[location] = undefined;
 }
 
+function findCyberwareById(targetId: string, cyberware: Cyberware): Cyberware | undefined {
+    if (cyberware.id === targetId) {
+        return cyberware;
+    }
+    for (const option of cyberware.slotted_options || []) {
+        const found = findCyberwareById(targetId, option);
+        if (found) {
+            return found;
+        }
+    }
+    return undefined;
+}
+
+function getCyberwareNameById(targetId: string) {
+    for (const cyberware of Object.values(char.value.cyberware)) {
+        if (!cyberware || cyberware.placeholder) {
+            continue;
+        }
+        const found = findCyberwareById(targetId, cyberware);
+        if (found) {
+            return found.name;
+        }
+    }
+    return undefined;
+}
+
 function uninstallCyberware(id: string) {
-    char.value.uninstallCyberwareById(id);
+    const cyberwareName = getCyberwareNameById(id);
+    openConfirmModal({
+        title: "Uninstall cyberware",
+        message: `Uninstall ${cyberwareName ?? "this cyberware"}?`,
+        confirmLabel: "Uninstall",
+        onConfirm: () => char.value.uninstallCyberwareById(id)
+    })
 }
 
 
@@ -703,6 +768,14 @@ function walkLifepath() {
     lifepathSelections.value = {};
     rebuildLifepathFromSelections();
 }
+function confirmWalkLifepath() {
+    openConfirmModal({
+        title: "Randomize lifepath",
+        message: "Randomize the lifepath? This replaces the current selections.",
+        confirmLabel: "Randomize",
+        onConfirm: () => walkLifepath()
+    })
+}
 const lifepath_modal_visible = ref(false)
 const lifepath_modal_content = ref("")
 function openLifepathModal(content: string) {
@@ -716,6 +789,14 @@ function walkRoleLifepath() {
     char.value.setRole(char.value.role);
     roleLifepathSelections.value = {};
     rebuildRoleLifepathFromSelections();
+}
+function confirmWalkRoleLifepath() {
+    openConfirmModal({
+        title: "Randomize role lifepath",
+        message: "Randomize the role lifepath? This replaces the current selections.",
+        confirmLabel: "Randomize",
+        onConfirm: () => walkRoleLifepath()
+    })
 }
 const role_lifepath_modal_visible = ref(false)
 const role_lifepath_modal_content = ref("")
@@ -734,13 +815,28 @@ function openRoleLifepathModal(content: string) {
 // ##     ## ##     ## ##    ## ########   #######  ##     ## #### ######## ######## 
 
 function randomizeWeapons() {
-    char.value.randomizeWeapons();
+    openConfirmModal({
+        title: "Randomize weapons",
+        message: "Randomize weapons? This replaces the current list.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeWeapons()
+    })
 }
 function randomizeGear() {
-    char.value.randomizeGear();
+    openConfirmModal({
+        title: "Randomize gear",
+        message: "Randomize gear? This replaces the current list.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeGear()
+    })
 }
 function randomizeArmor() {
-    char.value.randomizeArmor();
+    openConfirmModal({
+        title: "Randomize armor",
+        message: "Randomize armor? This replaces the current armor.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeArmor()
+    })
 }
 
 const weapon_catalog = computed(() => {
@@ -782,7 +878,14 @@ function applyArmorSelection() {
     char.value.setArmor({ location: armor_location.value, armor: armor_to_add.value });
 }
 function removeArmor(location: "body" | "head" | "shield") {
-    char.value.setArmor({ location, armor: "None" });
+    const armor = char.value.armor[location];
+    const armorName = armor === "None" ? "this armor" : armor.armor_type;
+    openConfirmModal({
+        title: "Remove armor",
+        message: `Remove ${armorName} from ${location}?`,
+        confirmLabel: "Remove",
+        onConfirm: () => char.value.setArmor({ location, armor: "None" })
+    })
 }
 function addWeapon() {
     if (!weapon_to_add.value) {
@@ -793,7 +896,13 @@ function addWeapon() {
     }
 }
 function removeWeapon(index: number) {
-    char.value.removeWeapon(index);
+    const weaponName = char.value.weapons[index]?.name ?? "this weapon";
+    openConfirmModal({
+        title: "Remove weapon",
+        message: `Remove ${weaponName}?`,
+        confirmLabel: "Remove",
+        onConfirm: () => char.value.removeWeapon(index)
+    })
 }
 function addGear() {
     if (!gear_to_add.value) {
@@ -804,17 +913,40 @@ function addGear() {
     }
 }
 function removeGear(index: number) {
-    char.value.removeGear(index);
+    const gearName = char.value.gear[index]?.name ?? "this gear";
+    openConfirmModal({
+        title: "Remove gear",
+        message: `Remove ${gearName}?`,
+        confirmLabel: "Remove",
+        onConfirm: () => char.value.removeGear(index)
+    })
 }
 
 function randomizeCyberware() {
-    char.value.randomizeCyberware();
+    openConfirmModal({
+        title: "Randomize cyberware",
+        message: "Randomize cyberware? This replaces the current loadout.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeCyberware()
+    })
 }
 
 function randomizeStats() {
-    char.value.randomizeStats();
+    openConfirmModal({
+        title: "Randomize stats",
+        message: "Randomize stats? This replaces current values.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeStats()
+    })
 }
-function randomizeSkills() { char.value.randomizeSkills() }
+function randomizeSkills() {
+    openConfirmModal({
+        title: "Randomize skills",
+        message: "Randomize skills? This replaces current values.",
+        confirmLabel: "Randomize",
+        onConfirm: () => char.value.randomizeSkills()
+    })
+}
 
 function randomizeHandle() { char.value.randomizeName(); }
 
@@ -1298,7 +1430,7 @@ generateCharacter(); // Generates a character on page load.
 
 
 -->
-        <CPTable title="Lifepath" :randomize="walkLifepath" :show_randomize_button="true">
+        <CPTable title="Lifepath" :randomize="confirmWalkLifepath" :show_randomize_button="true">
             <CPRow v-if="lifepath.length <= 0">
                 <td colspan="2" class="text-center">The general Lifepath has not been walked.</td>
             </CPRow>
@@ -1334,9 +1466,12 @@ generateCharacter(); // Generates a character on page load.
 
         <hr class="my-2" />
 
-        <CPTable :title="`${char.role} Lifepath`" :randomize="walkRoleLifepath" :show_randomize_button="true">
+        <CPTable :title="`${char.role} Lifepath`" :randomize="confirmWalkRoleLifepath" :show_randomize_button="true">
             <CPRow v-if="role_lifepath.length <= 0">
-                <td colspan="2" class="text-center">The {{ char.role }} Lifepath has not been walked.</td>
+                <td colspan="2" class="text-center">
+                    <div>The {{ char.role }} Lifepath has not been walked.</div>
+                    <div v-if="char.role === Role.Civilian" class="text-sm text-gray-500">Civilians don't have role-specific lifepaths.</div>
+                </td>
             </CPRow>
             <CPRow v-for="entry in roleLifepathSelectionsDisplay" :key="`role_lifepath_${entry.key}`">
                 <CPCell class="w-1/3">
@@ -1365,6 +1500,16 @@ generateCharacter(); // Generates a character on page load.
                 <h2 class="text-lg font-bold">Role Lifepath Event</h2>
                 <p>{{ role_lifepath_modal_content }}</p>
                 <CPButton class="mt-4" @click="role_lifepath_modal_visible = false">Close</CPButton>
+            </div>
+        </Modal>
+        <Modal :visible="confirm_modal_visible" @close="closeConfirmModal">
+            <div class="p-1">
+                <h2 class="text-lg font-bold">{{ confirm_modal_title }}</h2>
+                <p class="mt-2">{{ confirm_modal_message }}</p>
+                <div class="mt-4 flex justify-end gap-2">
+                    <CPButton @click="closeConfirmModal">Cancel</CPButton>
+                    <CPButton @click="confirmModalAction">{{ confirm_modal_confirm_label }}</CPButton>
+                </div>
             </div>
         </Modal>
 
