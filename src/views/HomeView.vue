@@ -47,8 +47,9 @@ import type { CreationMethod } from '@/classes/Character';
  * Reactive state for character generation controls and the active Character.
  */
 const creation_method = ref<CreationMethod>("edgerunner");
-const role = ref<Role>(Role.Civilian);
-const char = ref<Character>(new Character()) // Initializes reactive variable for character.
+const roleOptions = Object.values(Role) as Role[];
+const role = ref<Role>(roleOptions[Math.floor(Math.random() * roleOptions.length)]);
+const char = ref<Character>(new Character({ creation_method: creation_method.value, role: role.value })) // Initializes reactive variable for character.
 
 /**
  * Generate a full character based on the selected role and creation method.
@@ -742,6 +743,12 @@ const toThirdPerson = (value: string) => {
             return isCapitalized ? replacementCapitalized : replacement;
         });
     };
+    const replaceObjectPronoun = (pattern: RegExp, replacement: string, replacementCapitalized: string) => {
+        text = text.replace(pattern, (_match, prefix: string, token: string) => {
+            const isCapitalized = token[0] === token[0].toUpperCase();
+            return `${prefix}${isCapitalized ? replacementCapitalized : replacement}`;
+        });
+    };
     replaceToken(/\byou're\b/gi, "they're", "They're");
     replaceToken(/\byou've\b/gi, "they've", "They've");
     replaceToken(/\byou'll\b/gi, "they'll", "They'll");
@@ -749,6 +756,7 @@ const toThirdPerson = (value: string) => {
     replaceToken(/\byourself\b/gi, "themselves", "Themselves");
     replaceToken(/\byours\b/gi, "theirs", "Theirs");
     replaceToken(/\byour\b/gi, "their", "Their");
+    replaceObjectPronoun(/\b(to|for|with|at|from|about|against|on|in|into|through|over|under|around|before|after|watching|tracking|following|hunting|protecting|helping|hurting|guarding|shadowing|seeking)\s+(you)\b/gi, "them", "Them");
     replaceToken(/\byou\b/gi, "they", "They");
     return text;
 };
@@ -765,6 +773,26 @@ const normalizeSentenceFragment = (
         text = text[0].toLowerCase() + text.slice(1);
     }
     return text;
+};
+const noneThreadReplacements: Record<string, string> = {
+    "How many friends do you have?": "no friends",
+    "How many enemies do you have?": "no enemies",
+    "How many tragic love affairs do you have?": "no tragic love affairs",
+};
+const formatOtherThread = (entry: LifepathSelectionEntry) => {
+    const tableName = entry.event.table?.name ?? entry.label;
+    const normalized = normalizeSentenceFragment(entry.event.value, { thirdPerson: true });
+    if (!normalized) {
+        return "";
+    }
+    if (normalized.toLowerCase() === "none" && tableName in noneThreadReplacements) {
+        return noneThreadReplacements[tableName];
+    }
+    if (tableName === "Where is Your Corp Based?") {
+        return `Their corp is ${normalized}`;
+    }
+    const separator = entry.label.trim().endsWith("?") ? " " : ": ";
+    return `${entry.label}${separator}${normalized}`;
 };
 const hashSeed = (value: string) => {
     let hash = 0;
@@ -833,7 +861,8 @@ const character_summary = computed(() => {
     const lowSorted = [...lowCandidates].sort((a, b) => a.base - b.base || a.skill.name.localeCompare(b.skill.name));
     const low = lowSorted[0] ?? baseSkills[baseSkills.length - 1];
     const handle = char.value.handle?.trim();
-    const nameLead = handle && handle !== "Unknown" ? `${handle} is a` : "This character is a";
+    const article = /^[aeiou]/i.test(role.value) ? "an" : "a";
+    const nameLead = handle && handle !== "Unknown" ? `${handle} is ${article}` : `This character is ${article}`;
     let summary = `${nameLead} ${role.value} who shines in ${top.skill.name} (Base ${top.base})`;
     if (low) {
         summary += ` but struggles with ${low.skill.name} (Base ${low.base})`;
@@ -850,7 +879,21 @@ const character_summary = computed(() => {
         findEntryByTable(baseEntries, "Most valued possession you own?")
     ].filter((entry): entry is LifepathSelectionEntry => Boolean(entry));
     const seed = hashSeed(`${char.value.handle}|${role.value}|${baseEntries.length}|${roleEntries.length}`);
-    const baseExtras = baseEntries.filter((entry) => entry.event?.table?.name !== "What are you like?" && entry.event?.table?.name !== "Your Life Goals");
+    const excludedExtraTables = new Set([
+        "What are you like?",
+        "Your Life Goals",
+        "Friends",
+        "How many friends do you have?",
+        "Enemy",
+        "How many enemies do you have?",
+        "Who was wronged?",
+        "What caused it?",
+        "What can they throw at you?",
+        "What are you/they gonna do about it?",
+        "Tragic Love Affair",
+        "How many tragic love affairs do you have?"
+    ]);
+    const baseExtras = baseEntries.filter((entry) => !excludedExtraTables.has(entry.event?.table?.name ?? ""));
     let extras: LifepathSelectionEntry[] = [];
     if (roleEntries.length > 0) {
         const rolePick = pickRandomEntries(roleEntries, 1, seed);
@@ -888,7 +931,7 @@ const character_summary = computed(() => {
     }
     if (extras.length > 0) {
         const extraText = extras
-            .map((entry) => normalizeSentenceFragment(entry.event.value, { thirdPerson: true }))
+            .map((entry) => formatOtherThread(entry))
             .filter((text) => text.length > 0);
         if (extraText.length > 0) {
             sentences.push(`Other threads: ${extraText.join(", ")}.`);
