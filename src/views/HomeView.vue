@@ -9,7 +9,8 @@ import {
     MeleeWeapons,
     RangedWeapons,
     ArmorList,
-    Gear
+    Gear,
+    Cyberware as CyberwareList
 } from '@/data';
 import SkillTables from '@/data/edge_runner_skill_tables';
 import { Skill, Character, Cyberware, Weapon } from '@/classes';
@@ -159,6 +160,10 @@ const char_rank = computed({
 const char_notes = computed({
     get: () => char.value.notes,
     set: (value) => char.value.notes = value
+})
+const char_other_notes = computed({
+    get: () => char.value.other_notes,
+    set: (value) => char.value.other_notes = value
 })
 
 // const char_info = computed(() => {
@@ -1018,6 +1023,14 @@ generateCharacter(); // Generates a character on page load.
                 <CPButton class="mt-4" @click="gear_modal_visible = false">Close</CPButton>
             </div>
         </Modal>
+        <hr class="my-2" />
+
+        <CPTitle class="flex justify-between pr-2">
+            <span>Other</span>
+        </CPTitle>
+        <div class="border-x-4 border-b-4 border-red-500 bg-white p-3 text-sm text-black">
+            <textarea v-model="char_other_notes" class="w-full min-h-[8rem] p-2" placeholder="Add other notes here."></textarea>
+        </div>
         <Modal :visible="catalog_modal_visible" @close="catalog_modal_visible = false">
             <div class="p-1">
                 <div class="flex items-center justify-between gap-4">

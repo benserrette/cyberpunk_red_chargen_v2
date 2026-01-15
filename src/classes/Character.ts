@@ -119,6 +119,7 @@ export class Character {
     rent: number = 0
     lifestyle: string = ""
     fashion: string = ""
+    other_notes: string = ""
 
     reputation: number = 0
     reputation_events: string[] = []
@@ -160,6 +161,7 @@ export class Character {
         this.resetCyberware();
 
         this.cash = Starting_Cash[this.creation_method];
+        this.other_notes = "";
     }
 
     /**
@@ -226,6 +228,15 @@ export class Character {
                         if (cyberware) {
                             this.installCyberware({ cyberware: new Cyberware({ ...cyberware }), free: true });
                         }
+                    }
+                    else if (item.type === "fashion" || item.type === "program" || item.type === "other") {
+                        if (item.quantity && item.quantity > 1 && i > 0) {
+                            continue;
+                        }
+                        const label = `${item.type[0].toUpperCase()}${item.type.slice(1)}`;
+                        const quantity = item.quantity && item.quantity > 1 ? ` x${item.quantity}` : "";
+                        const entry = `${label}: ${item.name}${quantity}`;
+                        this.other_notes = this.other_notes ? `${this.other_notes}\n${entry}` : entry;
                     }
                 }
 
