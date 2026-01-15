@@ -1,28 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import {
-    Stat,
     Role,
-    SkillList,
     RequiredSkills,
-    SkillCategories,
-    WeaponAttachments,
     ClipChart,
     AmmoTypes,
     CyberwareType,
-    Cyberware as CyberwareList,
     MeleeWeapons,
     RangedWeapons,
     ArmorList,
     Gear
 } from '@/data';
 import SkillTables from '@/data/edge_runner_skill_tables';
-import { Lifepath, LifepathRow, LifepathTable, Skill, Character, Cyberware, Weapon } from '@/classes';
-import type { WeaponAttachment, AmmoType, Armor, GearItem } from '@/types'
+import { Skill, Character, Cyberware, Weapon } from '@/classes';
+import type { WeaponAttachment, AmmoType, Armor, GearItem } from '@/types';
 import TextField from '@/components/TextField.vue';
 import TextFieldRow from '@/components/TextFieldRow.vue'
 import SkillTable from '@/components/SkillTable.vue'
-import SkillRow from '@/components/SkillRow.vue'
 import Modal from '@/components/Modal.vue'
 import StatsBlock from '@/components/StatsBlock.vue'
 import SkillsByGroup from '@/components/SkillsByGroup.vue'
@@ -31,6 +25,8 @@ import CPCell from '@/components/CPCell.vue';
 import CPRow from '@/components/CPRow.vue';
 import CPTitle from '@/components/CPTitle.vue';
 import CPButton from '@/components/CPButton.vue';
+import { useCatalog } from '@/composables/useCatalog';
+import { useLifepath } from '@/composables/useLifepath';
 
 import type { CreationMethod } from '@/classes/Character';
 
@@ -335,146 +331,19 @@ function OpenGearModal(gear: { name: string, description: string, cost: number }
     gear_modal_visible.value = true;
 }
 
-type CatalogItem = {
-    name: string;
-    description: string;
-    cost: number;
-    category: string;
-    skill?: string;
-    damage?: string;
-    rof?: number;
-    ammo?: string;
-    alt_fire?: string;
-    special_features?: string;
-    sp?: number | string;
-    penalty?: string;
-    location?: string;
-    prereqs?: string;
-}
-
-const catalog_modal_visible = ref(false)
-type CatalogSortKey = 'name' | 'cost'
-const catalog_sort_key = ref<CatalogSortKey>('name')
-const catalog_sort_direction = ref<'asc' | 'desc'>('asc')
-const catalog_category = ref<string | null>(null)
-const getWeaponExamples = (weapon: Weapon) => {
-    const examples = new Set<string>()
-    if (weapon.variants?.length) {
-        for (const example of weapon.variants) {
-            if (example) {
-                examples.add(example)
-            }
-        }
-    }
-    if (weapon.quality_variants) {
-        for (const [quality, example] of Object.entries(weapon.quality_variants)) {
-            if (example) {
-                const label = quality.charAt(0).toUpperCase() + quality.slice(1).toLowerCase()
-                examples.add(`${example} (${label} quality)`)
-            }
-        }
-    }
-    if (examples.size === 0 && weapon.description) {
-        examples.add(weapon.description)
-    }
-    return Array.from(examples).join(', ') || 'No examples available.'
-}
-const catalog_items = computed(() => {
-    const items: CatalogItem[] = []
-    const addItem = (name: string, description: string, cost: number, category: string, details?: Partial<CatalogItem>) => {
-        items.push({
-            name,
-            description: description?.trim() || 'No description available.',
-            cost,
-            category,
-            ...details
-        })
-    }
-
-    for (const weapon of [...MeleeWeapons, ...RangedWeapons]) {
-        const examples = getWeaponExamples(weapon)
-        addItem(weapon.name, examples, weapon.cost, 'Weapon', {
-            skill: weapon.skill,
-            damage: weapon.damage,
-            rof: weapon.rof,
-            ammo: weapon.ammo_type?.join(', ') || '',
-            alt_fire: weapon.alt_fire && weapon.alt_fire.toLowerCase() !== 'none' ? weapon.alt_fire : '',
-            special_features: weapon.special_features && weapon.special_features.toLowerCase() !== 'none' ? weapon.special_features : ''
-        })
-    }
-    for (const armor of ArmorList) {
-        const penalty = armor.penalty.length <= 0 ? 'None' : armor.penalty.map((entry) => `${entry.stat}: ${entry.penalty}`).join(', ')
-        addItem(armor.armor_type, armor.description, armor.cost, 'Armor', {
-            sp: armor.sp,
-            penalty
-        })
-    }
-    for (const gearItem of Object.values(Gear)) {
-        addItem(gearItem.name, gearItem.description, gearItem.cost, 'Gear')
-    }
-    for (const cyberware of CyberwareList) {
-        const location = cyberware.body_location.length > 0 ? cyberware.body_location.join(', ') : ''
-        const prereqs = cyberware.required_cyberware || ''
-        addItem(cyberware.name, cyberware.description, cyberware.cost, 'Cyberware', {
-            location,
-            prereqs
-        })
-    }
-    for (const attachment of Object.values(WeaponAttachments)) {
-        addItem(attachment.name, attachment.description, attachment.cost, 'Weapon Attachment')
-    }
-    for (const ammoType of AmmoTypes) {
-        addItem(ammoType.name, ammoType.description, ammoType.cost, 'Ammo')
-    }
-
-    return items
-})
-const catalog_filtered_items = computed(() => {
-    if (!catalog_category.value) {
-        return catalog_items.value
-    }
-    return catalog_items.value.filter((item) => item.category === catalog_category.value)
-})
-const catalog_sorted_items = computed(() => {
-    const items = [...catalog_filtered_items.value]
-    const direction = catalog_sort_direction.value === 'asc' ? 1 : -1
-    return items.sort((a, b) => {
-        if (catalog_sort_key.value === 'cost') {
-            return (a.cost - b.cost) * direction
-        }
-        return a.name.localeCompare(b.name) * direction
-    })
-})
-const catalog_description_label = computed(() => {
-    return catalog_category.value === 'Weapon' ? 'Examples' : 'Description'
-})
-const catalog_modal_title = computed(() => {
-    if (!catalog_category.value) {
-        return 'Item Catalog'
-    }
-    return `${catalog_category.value} Catalog`
-})
-const is_weapon_catalog = computed(() => catalog_category.value === 'Weapon')
-const is_armor_catalog = computed(() => catalog_category.value === 'Armor')
-const is_cyberware_catalog = computed(() => catalog_category.value === 'Cyberware')
-const catalogSortIndicator = (key: CatalogSortKey) => {
-    if (catalog_sort_key.value !== key) {
-        return ''
-    }
-    return catalog_sort_direction.value === 'asc' ? ' ▲' : ' ▼'
-}
-const toggleCatalogSort = (key: CatalogSortKey) => {
-    if (catalog_sort_key.value === key) {
-        catalog_sort_direction.value = catalog_sort_direction.value === 'asc' ? 'desc' : 'asc'
-        return
-    }
-    catalog_sort_key.value = key
-    catalog_sort_direction.value = 'asc'
-}
-const openCatalog = (category: string) => {
-    catalog_category.value = category
-    catalog_modal_visible.value = true
-}
+const {
+    catalog_modal_visible,
+    catalog_sorted_items,
+    catalog_description_label,
+    catalog_modal_title,
+    is_weapon_catalog,
+    is_armor_catalog,
+    is_cyberware_catalog,
+    getWeaponExamples,
+    catalogSortIndicator,
+    toggleCatalogSort,
+    openCatalog
+} = useCatalog();
 
 
 //  ######  ##    ## ########  ######## ########  
@@ -485,30 +354,6 @@ const openCatalog = (category: string) => {
 // ##    ##    ##    ##     ## ##       ##    ##  
 //  ######     ##    ########  ######## ##     ## 
 
-const cyberwareCount = computed(() => {
-    let count = 0;
-    for (const cyberware of Object.values(char.value.cyberware)) {
-        if (cyberware === undefined) {
-            continue;
-        }
-        if (cyberware.placeholder && cyberware.slotted_options.length == 0) {
-            continue;
-        }
-        if (cyberware.placeholder === false) {
-            count += 1
-        }
-        if (cyberware.slotted_options && cyberware.slotted_options.length > 0) {
-            count += cyberware.slotted_options.length
-            for (const option of cyberware.slotted_options) {
-                if (option.slotted_options && option.slotted_options.length > 0) {
-                    count += option.slotted_options.length
-                }
-            }
-        }
-    }
-
-    return count;
-})
 const cyberware_icons = ref<Record<string, string>>({
     "Brain": "",
     "Ear": "",
@@ -641,349 +486,19 @@ function uninstallCyberware(id: string) {
 // ##        ##  ##       ##       ##        ##     ##    ##    ##     ## 
 // ######## #### ##       ######## ##        ##     ##    ##    ##     ## 
 
-const lifepath = computed(() => {
-    return char?.value?.lifepath?.path || [];
-})
-const role_lifepath = computed(() => {
-    return char?.value?.role_lifepath?.path || [];
-})
-type LifepathSelectionEntry = {
-    event: LifepathRow;
-    key: string;
-    options: LifepathRow[];
-    selectedIndex: number;
-    label: string;
-};
-const lifepathSelections = ref<Record<string, number>>({});
-const roleLifepathSelections = ref<Record<string, number>>({});
-function buildLifepathPath(startingTable: LifepathTable | undefined, selections: Record<string, number>) {
-    const path: LifepathRow[] = [];
-    const tableOccurrences: Record<string, number> = {};
-    const repeatOverrides: Record<string, number[]> = {};
-
-    function walkTable(table: LifepathTable) {
-        let repeat = 1;
-        const overrideQueue = repeatOverrides[table.name];
-        if (overrideQueue && overrideQueue.length > 0) {
-            repeat = overrideQueue.shift() ?? 1;
-        } else if (table.repeat === "1d10-7") {
-            repeat = Math.floor(Math.random() * 4);
-        } else {
-            repeat = table.repeat as number;
-        }
-
-        for (let i = 0; i < repeat; i++) {
-            const occurrence = (tableOccurrences[table.name] ?? 0) + 1;
-            tableOccurrences[table.name] = occurrence;
-            const key = `${table.name}#${occurrence}`;
-            let selectedIndex = selections[key];
-            if (selectedIndex === undefined || selectedIndex < 0 || selectedIndex >= table.rows.length) {
-                selectedIndex = Math.floor(Math.random() * table.rows.length);
-            }
-            selections[key] = selectedIndex;
-            const row = table.rows[selectedIndex];
-            path.push(new LifepathRow({ ...row }));
-            if (row.next_table) {
-                if (row.next_table_repeat !== undefined) {
-                    repeatOverrides[row.next_table.name] ??= [];
-                    repeatOverrides[row.next_table.name].push(row.next_table_repeat);
-                }
-                walkTable(row.next_table);
-            }
-        }
-        if (table.next_table) {
-            walkTable(table.next_table);
-        }
-    }
-
-    if (startingTable) {
-        walkTable(startingTable);
-    }
-
-    return { path, selections };
-}
-function buildLifepathSelections(path: LifepathRow[], selections: Record<string, number>): LifepathSelectionEntry[] {
-    const occurrences: Record<string, number> = {};
-    const indexedTables = new Set(["Enemy", "Friends", "Tragic Love Affair"]);
-    return path.map((event) => {
-        const table = event.table;
-        const tableName = table?.name ?? "Unknown";
-        const occurrence = (occurrences[tableName] ?? 0) + 1;
-        occurrences[tableName] = occurrence;
-        const key = `${tableName}#${occurrence}`;
-        const options = table?.rows ?? [];
-        const label = indexedTables.has(tableName) ? `${tableName} ${occurrence}` : tableName;
-        let selectedIndex = selections[key];
-        if (selectedIndex === undefined || selectedIndex < 0 || selectedIndex >= options.length) {
-            selectedIndex = options.findIndex((row) => row.value === event.value && row.description === event.description);
-        }
-        if (selectedIndex < 0) {
-            selectedIndex = 0;
-        }
-        return {
-            event,
-            key,
-            options,
-            selectedIndex,
-            label
-        };
-    });
-}
-const lifepathSelectionsDisplay = computed(() => {
-    return buildLifepathSelections(lifepath.value, lifepathSelections.value);
-});
-const roleLifepathSelectionsDisplay = computed(() => {
-    return buildLifepathSelections(role_lifepath.value, roleLifepathSelections.value);
-});
-const toThirdPerson = (value: string) => {
-    let text = value;
-    const replaceToken = (pattern: RegExp, replacement: string, replacementCapitalized: string) => {
-        text = text.replace(pattern, (match) => {
-            const isCapitalized = match[0] === match[0].toUpperCase();
-            return isCapitalized ? replacementCapitalized : replacement;
-        });
-    };
-    const replaceObjectPronoun = (pattern: RegExp, replacement: string, replacementCapitalized: string) => {
-        text = text.replace(pattern, (_match, prefix: string, token: string) => {
-            const isCapitalized = token[0] === token[0].toUpperCase();
-            return `${prefix}${isCapitalized ? replacementCapitalized : replacement}`;
-        });
-    };
-    replaceToken(/\byou're\b/gi, "they're", "They're");
-    replaceToken(/\byou've\b/gi, "they've", "They've");
-    replaceToken(/\byou'll\b/gi, "they'll", "They'll");
-    replaceToken(/\byou'd\b/gi, "they'd", "They'd");
-    replaceToken(/\byourself\b/gi, "themselves", "Themselves");
-    replaceToken(/\byours\b/gi, "theirs", "Theirs");
-    replaceToken(/\byour\b/gi, "their", "Their");
-    replaceObjectPronoun(/\b(to|for|with|at|from|about|against|on|in|into|through|over|under|around|before|after|watching|tracking|following|hunting|protecting|helping|hurting|guarding|shadowing|seeking)\s+(you)\b/gi, "them", "Them");
-    replaceToken(/\byou\b/gi, "they", "They");
-    return text;
-};
-const normalizeSentenceFragment = (
-    value: string,
-    { lowerCaseStart = false, thirdPerson = false }: { lowerCaseStart?: boolean; thirdPerson?: boolean } = {}
-) => {
-    let text = value.trim();
-    if (thirdPerson) {
-        text = toThirdPerson(text);
-    }
-    text = text.replace(/[.]+$/g, '');
-    if (lowerCaseStart && text.length > 0) {
-        text = text[0].toLowerCase() + text.slice(1);
-    }
-    return text;
-};
-const noneThreadReplacements: Record<string, string> = {
-    "How many friends do you have?": "no friends",
-    "How many enemies do you have?": "no enemies",
-    "How many tragic love affairs do you have?": "no tragic love affairs",
-};
-const formatOtherThread = (entry: LifepathSelectionEntry) => {
-    const tableName = entry.event.table?.name ?? entry.label;
-    const normalized = normalizeSentenceFragment(entry.event.value, { thirdPerson: true });
-    if (!normalized) {
-        return "";
-    }
-    if (normalized.toLowerCase() === "none" && tableName in noneThreadReplacements) {
-        return noneThreadReplacements[tableName];
-    }
-    if (tableName === "Where is Your Corp Based?") {
-        return `Their corp is ${normalized}`;
-    }
-    const separator = entry.label.trim().endsWith("?") ? " " : ": ";
-    return `${entry.label}${separator}${normalized}`;
-};
-const hashSeed = (value: string) => {
-    let hash = 0;
-    for (let i = 0; i < value.length; i += 1) {
-        hash = Math.imul(31, hash) + value.charCodeAt(i);
-        hash |= 0;
-    }
-    return hash >>> 0;
-};
-const makeRng = (seed: number) => {
-    let state = seed >>> 0;
-    return () => {
-        state = (Math.imul(1664525, state) + 1013904223) >>> 0;
-        return state / 0x100000000;
-    };
-};
-const pickRandomEntries = (entries: LifepathSelectionEntry[], count: number, seed: number) => {
-    const copy = [...entries];
-    const rng = makeRng(seed);
-    for (let i = copy.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(rng() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy.slice(0, Math.min(count, copy.length));
-};
-const findEntryByTable = (entries: LifepathSelectionEntry[], tableName: string) => {
-    return entries.find((entry) => entry.event?.table?.name === tableName);
-};
-const getInstalledCyberware = (cyberware: Record<string, Cyberware | undefined>) => {
-    const items: Cyberware[] = [];
-    const pushItem = (item: Cyberware) => {
-        if (item.placeholder) {
-            return;
-        }
-        items.push(item);
-        if (item.slotted_options?.length) {
-            for (const option of item.slotted_options) {
-                pushItem(option);
-            }
-        }
-    };
-    for (const entry of Object.values(cyberware)) {
-        if (!entry) {
-            continue;
-        }
-        pushItem(entry);
-    }
-    return items;
-};
-const character_summary = computed(() => {
-    const skills = Object.values(char.value.skills);
-    if (skills.length === 0) {
-        return "Generate a character to see a summary.";
-    }
-    const baseSkills = skills.map((skill) => ({
-        skill,
-        base: (char.value.stats[skill.stat] ?? 0) + (skill.lvl ?? 0)
-    }));
-    baseSkills.sort((a, b) => b.base - a.base || a.skill.name.localeCompare(b.skill.name));
-    const top = baseSkills[0];
-    const roleSkillTable = SkillTables[role.value as Role] ?? {};
-    const roleSkillNames = new Set(Object.keys(roleSkillTable));
-    const lowCandidates = roleSkillNames.size > 0
-        ? baseSkills.filter((entry) => roleSkillNames.has(entry.skill.name))
-        : baseSkills;
-    const lowSorted = [...lowCandidates].sort((a, b) => a.base - b.base || a.skill.name.localeCompare(b.skill.name));
-    const low = lowSorted[0] ?? baseSkills[baseSkills.length - 1];
-    const handle = char.value.handle?.trim();
-    const article = /^[aeiou]/i.test(role.value) ? "an" : "a";
-    const nameLead = handle && handle !== "Unknown" ? `${handle} is ${article}` : `This character is ${article}`;
-    let summary = `${nameLead} ${role.value} who shines in ${top.skill.name} (Base ${top.base})`;
-    if (low) {
-        summary += ` but struggles with ${low.skill.name} (Base ${low.base})`;
-    }
-    summary += ".";
-    const baseEntries = lifepathSelectionsDisplay.value;
-    const roleEntries = roleLifepathSelectionsDisplay.value;
-    const personalityEntry = findEntryByTable(baseEntries, "What are you like?");
-    const goalEntry = findEntryByTable(baseEntries, "Your Life Goals");
-    const originEntry = findEntryByTable(baseEntries, "Cultural Origin");
-    const valueEntries = [
-        findEntryByTable(baseEntries, "Most valued person in your life?"),
-        findEntryByTable(baseEntries, "What do you value most?"),
-        findEntryByTable(baseEntries, "Most valued possession you own?")
-    ].filter((entry): entry is LifepathSelectionEntry => Boolean(entry));
-    const seed = hashSeed(`${char.value.handle}|${role.value}|${baseEntries.length}|${roleEntries.length}`);
-    const excludedExtraTables = new Set([
-        "What are you like?",
-        "Your Life Goals",
-        "Friends",
-        "How many friends do you have?",
-        "Enemy",
-        "How many enemies do you have?",
-        "Who was wronged?",
-        "What caused it?",
-        "What can they throw at you?",
-        "What are you/they gonna do about it?",
-        "Tragic Love Affair",
-        "How many tragic love affairs do you have?"
-    ]);
-    const baseExtras = baseEntries.filter((entry) => !excludedExtraTables.has(entry.event?.table?.name ?? ""));
-    let extras: LifepathSelectionEntry[] = [];
-    if (roleEntries.length > 0) {
-        const rolePick = pickRandomEntries(roleEntries, 1, seed);
-        const remainingPool = baseExtras.filter((entry) => !rolePick.includes(entry));
-        extras = [...rolePick, ...pickRandomEntries(remainingPool, 1, seed + 2)];
-    } else {
-        extras = pickRandomEntries(baseExtras, 2, seed);
-    }
-    const sentences: string[] = [];
-    if (originEntry || personalityEntry || valueEntries.length > 0) {
-        const fragments: string[] = [];
-        if (originEntry) {
-            fragments.push(normalizeSentenceFragment(originEntry.event.value, { lowerCaseStart: true, thirdPerson: true }));
-        }
-        if (personalityEntry) {
-            fragments.push(normalizeSentenceFragment(personalityEntry.event.value, {
-                lowerCaseStart: originEntry !== undefined,
-                thirdPerson: true
-            }));
-        }
-        const valueEntry = valueEntries.length > 0 ? pickRandomEntries(valueEntries, 1, seed + 1)[0] : undefined;
-        if (valueEntry) {
-            fragments.push(`value ${normalizeSentenceFragment(valueEntry.event.value, { lowerCaseStart: true, thirdPerson: true })}`);
-        }
-        if (fragments.length === 1 && fragments[0].startsWith("value ")) {
-            sentences.push(`They ${fragments[0]}.`);
-        } else if (fragments.length > 0) {
-            const combined = fragments.join(", ").replace(", value ", ", and value ");
-            sentences.push(`They're ${combined}.`);
-        }
-    }
-    if (goalEntry) {
-        const goalText = normalizeSentenceFragment(goalEntry.event.value, { lowerCaseStart: true, thirdPerson: true });
-        sentences.push(`Their goal is to ${goalText}.`);
-    }
-    if (extras.length > 0) {
-        const extraText = extras
-            .map((entry) => formatOtherThread(entry))
-            .filter((text) => text.length > 0);
-        if (extraText.length > 0) {
-            sentences.push(`Other threads: ${extraText.join(", ")}.`);
-        }
-    }
-    const cyberwareItems = getInstalledCyberware(char.value.cyberware);
-    if (cyberwareItems.length > 0) {
-        const names = Array.from(new Set(cyberwareItems.map((item) => item.name)));
-        const list = names.slice(0, 2).join(", ");
-        const suffix = names.length > 2 ? ` and ${names.length - 2} more` : "";
-        sentences.push(`Cyberware includes ${list}${suffix}.`);
-    } else {
-        sentences.push("No cyberware installed.");
-    }
-    if (sentences.length > 0) {
-        summary += ` ${sentences.join(" ")}`;
-    }
-    return summary;
-});
-function rebuildLifepathFromSelections() {
-    const { path, selections } = buildLifepathPath(char.value.lifepath.starting_table, { ...lifepathSelections.value });
-    lifepathSelections.value = selections;
-    char.value.lifepath.path = path;
-}
-function rebuildRoleLifepathFromSelections() {
-    const { path, selections } = buildLifepathPath(char.value.role_lifepath?.starting_table, { ...roleLifepathSelections.value });
-    roleLifepathSelections.value = selections;
-    if (char.value.role_lifepath) {
-        char.value.role_lifepath.path = path;
-    }
-}
-function updateLifepathSelection(key: string, table: LifepathTable | undefined, index: number) {
-    if (!table) {
-        return;
-    }
-    lifepathSelections.value = { ...lifepathSelections.value, [key]: index };
-    rebuildLifepathFromSelections();
-}
-function updateRoleLifepathSelection(key: string, table: LifepathTable | undefined, index: number) {
-    if (!table) {
-        return;
-    }
-    roleLifepathSelections.value = { ...roleLifepathSelections.value, [key]: index };
-    rebuildRoleLifepathFromSelections();
-}
+const {
+    lifepath,
+    role_lifepath,
+    lifepathSelectionsDisplay,
+    roleLifepathSelectionsDisplay,
+    updateLifepathSelection,
+    updateRoleLifepathSelection,
+    walkLifepath,
+    walkRoleLifepath,
+    character_summary
+} = useLifepath({ char, role });
 function parseSelectValue(event: Event) {
     return Number((event.target as HTMLSelectElement).value);
-}
-function walkLifepath() {
-    char.value.resetLifepath();
-    lifepathSelections.value = {};
-    rebuildLifepathFromSelections();
 }
 function confirmWalkLifepath() {
     openConfirmModal({
@@ -1000,13 +515,6 @@ function openLifepathModal(content: string) {
     lifepath_modal_visible.value = true;
 }
 
-
-
-function walkRoleLifepath() {
-    char.value.setRole(char.value.role);
-    roleLifepathSelections.value = {};
-    rebuildRoleLifepathFromSelections();
-}
 function confirmWalkRoleLifepath() {
     openConfirmModal({
         title: "Randomize role lifepath",
