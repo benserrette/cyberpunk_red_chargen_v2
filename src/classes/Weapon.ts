@@ -179,7 +179,7 @@ export class Weapon {
         }
         let number_of_attachments = 0
         for (const key in this.attachments) {
-            number_of_attachments += attachment.attachment_slots;
+            number_of_attachments += this.attachments[key].attachment_slots;
         }
         if (this.max_attachments - number_of_attachments < attachment.attachment_slots) {
             throw new Error("Not enough attachment slots");

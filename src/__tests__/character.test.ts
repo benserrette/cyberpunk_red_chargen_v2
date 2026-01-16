@@ -45,10 +45,10 @@ describe('Character', () => {
     character.armor.body = armor;
     character.armor.head = armor;
     character.weapons = [new Weapon({ ...RangedWeapons[0] })];
-    character.gear = [Gear.agent];
+    character.gear = [{ item: Gear.agent, quantity: 1 }];
 
     const weaponCost = character.weapons[0].cost;
-    const gearCost = character.gear[0].cost;
+    const gearCost = character.gear[0].item.cost;
     const armorCost = armor.cost * 2;
 
     character.resetArmor();
@@ -74,7 +74,7 @@ describe('Character', () => {
 
     expect(character.armor.body).not.toBe('None');
     expect(character.armor.head).not.toBe('None');
-    expect(character.gear.some((item) => item.name === 'Agent')).toBe(true);
+    expect(character.gear.some((entry) => entry.item.name === 'Agent')).toBe(true);
 
     expect(character.findCyberware('Neural Link')).toHaveLength(1);
     expect(character.hasSpeedware() || character.findCyberware('Wolvers').length > 0).toBe(true);

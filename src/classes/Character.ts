@@ -22,7 +22,7 @@ import {
     Cyberware as CyberwareList
 } from "@/data";
 import { Skill, Weapon, Lifepath, Cyberware } from ".";
-import type { Armor, GearItem } from "@/types";
+import type { Armor, GearItem, WeaponAttachment, AmmoType } from "@/types";
 import { random_key } from "@/utilities";
 import { CulturalOriginTable } from "@/data/lifepath_tables";
 import type { setOriginalNode } from "typescript";
@@ -85,6 +85,14 @@ type EquipmentRequirements = {
     stats?: Record<string, number>;
 };
 export type CreationMethod = "complete" | "edgerunner" | "street rat";
+type MiscItem = {
+    name: string;
+    quantity?: number;
+};
+type OwnedGear = {
+    item: GearItem;
+    quantity: number;
+};
 
 /**
  * Represents a full character sheet, including stats, gear, lifepath, and cash.
@@ -114,7 +122,9 @@ export class Character {
         shield: "None"
     }
     weapons: Weapon[] = []
-    gear: GearItem[] = []
+    gear: OwnedGear[] = []
+    programs: MiscItem[] = []
+    fashion_items: MiscItem[] = []
     housing: string = ""
     rent: number = 0
     lifestyle: string = ""
@@ -161,6 +171,8 @@ export class Character {
         this.resetCyberware();
 
         this.cash = Starting_Cash[this.creation_method];
+        this.programs = [];
+        this.fashion_items = [];
         this.other_notes = "";
     }
 
@@ -220,7 +232,7 @@ export class Character {
                     else if (item.type === "gear") {
                         const gear = Object.values(Gear).find((gearItem) => gearItem.name === item.name);
                         if (gear) {
-                            this.gear.push(gear);
+                            this.addGearEntry(gear, item.quantity ?? 1, true);
                         }
                     }
                     else if (item.type == "cyberware") {
@@ -233,10 +245,12 @@ export class Character {
                         if (item.quantity && item.quantity > 1 && i > 0) {
                             continue;
                         }
-                        const label = `${item.type[0].toUpperCase()}${item.type.slice(1)}`;
-                        const quantity = item.quantity && item.quantity > 1 ? ` x${item.quantity}` : "";
-                        const entry = `${label}: ${item.name}${quantity}`;
-                        this.other_notes = this.other_notes ? `${this.other_notes}\n${entry}` : entry;
+                        const miscItem = { name: item.name, quantity: item.quantity };
+                        if (item.type === "fashion" || item.type === "other") {
+                            this.addMiscItem(this.fashion_items, miscItem);
+                        } else if (item.type === "program") {
+                            this.addMiscItem(this.programs, miscItem);
+                        }
                     }
                 }
 
@@ -260,6 +274,18 @@ export class Character {
         else {
             throw new Error(`Could not find equipment table for role: ${this.role}`);
         }
+    }
+    /**
+     * Merge a misc item into a list, consolidating quantities by name.
+     */
+    addMiscItem(list: MiscItem[], item: MiscItem) {
+        const quantity = item.quantity && item.quantity > 1 ? item.quantity : 1;
+        const existing = list.find((entry) => entry.name === item.name);
+        if (existing) {
+            existing.quantity = (existing.quantity ?? 1) + quantity;
+            return;
+        }
+        list.push({ name: item.name, quantity: quantity > 1 ? quantity : undefined });
     }
 
     /**
@@ -369,7 +395,6 @@ export class Character {
     }
 
     //TODO: Doesn't handle cyberware with requirements that aren't slotted directly into the requirement (e.g. Sensor Array)
-    //TODO: Throw error if the cyberware would reduce humanity below 0
     /**
      * Install cyberware, enforcing slot requirements and cost rules.
      */
@@ -493,6 +518,16 @@ export class Character {
                 return false;
             }
             throw new Error(`Cannot install ${cyberware.name}.  Only one piece of speedware is allowed.`);
+        }
+        const humanityLoss = cyberware.getHumanityLoss();
+        const pairedMultiplier = cyberware.must_be_paired ? 2 : 1;
+        const projectedLoss = this.getHumanityLoss() + humanityLoss * pairedMultiplier;
+        const maxHumanity = this.stats.EMP * 10;
+        if (projectedLoss > maxHumanity) {
+            if (returning) {
+                return false;
+            }
+            throw new Error(`Cannot install ${cyberware.name}.  Humanity cannot drop below 0.`);
         }
         const max_installs = cyberware.max_installs;
         const current_installs = this.findCyberware(cyberware.name).length;
@@ -806,6 +841,71 @@ export class Character {
         this.weapons.splice(index, 1);
     }
     /**
+     * Check whether a weapon attachment can be added, including cost and slot usage.
+     */
+    canAddWeaponAttachment(weapon: Weapon, attachment: WeaponAttachment): boolean {
+        if (!attachment.eligible.includes(weapon.name)) {
+            return false;
+        }
+        const usedSlots = weapon.attachments.reduce((sum, item) => sum + item.attachment_slots, 0);
+        if (weapon.max_attachments - usedSlots < attachment.attachment_slots) {
+            return false;
+        }
+        return this.cash >= attachment.cost;
+    }
+    /**
+     * Add a weapon attachment and deduct its cost.
+     */
+    addWeaponAttachment(weaponIndex: number, attachment: WeaponAttachment): boolean {
+        const weapon = this.weapons[weaponIndex];
+        if (!weapon || !this.canAddWeaponAttachment(weapon, attachment)) {
+            return false;
+        }
+        weapon.addAttachment(attachment);
+        this.cash -= attachment.cost;
+        return true;
+    }
+    /**
+     * Remove an attachment and refund its cost.
+     */
+    removeWeaponAttachment(weaponIndex: number, attachmentIndex: number) {
+        const weapon = this.weapons[weaponIndex];
+        if (!weapon) {
+            return;
+        }
+        const attachment = weapon.attachments[attachmentIndex];
+        if (!attachment) {
+            return;
+        }
+        weapon.attachments.splice(attachmentIndex, 1);
+        this.cash += attachment.cost;
+    }
+    /**
+     * Check whether ammo can be added to a weapon.
+     */
+    canAddAmmo(weapon: Weapon, ammoType: AmmoType, quantity: number): boolean {
+        if (!weapon.supportsAmmoType(ammoType)) {
+            return false;
+        }
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+            return false;
+        }
+        const totalCost = ammoType.cost * quantity;
+        return this.cash >= totalCost;
+    }
+    /**
+     * Add ammo to a weapon and deduct its cost.
+     */
+    addAmmo(weaponIndex: number, ammoType: AmmoType, quantity: number): boolean {
+        const weapon = this.weapons[weaponIndex];
+        if (!weapon || !this.canAddAmmo(weapon, ammoType, quantity)) {
+            return false;
+        }
+        weapon.addAmmo(ammoType.name, quantity);
+        this.cash -= ammoType.cost * quantity;
+        return true;
+    }
+    /**
      * Clear armor slots and refund any spent armor costs.
      */
     resetArmor() {
@@ -981,8 +1081,8 @@ export class Character {
      * Remove all gear items and refund their costs.
      */
     resetGear() {
-        for (const item in this.gear) {
-            this.cash += this.gear[item].cost;
+        for (const entry of this.gear) {
+            this.cash += entry.item.cost * entry.quantity;
         }
         this.gear = [];
     }
@@ -994,26 +1094,43 @@ export class Character {
         return this.meetsEquipmentRequirements(requirements) && this.cash >= gearItem.cost;
     }
     /**
+     * Add gear with optional quantity and free flag.
+     */
+    addGearEntry(gearItem: GearItem, quantity = 1, free = false): boolean {
+        const clampedQty = Math.max(1, Math.floor(quantity));
+        if (!free && !this.canAddGear(gearItem)) {
+            return false;
+        }
+        const existing = this.gear.find((entry) => entry.item.name === gearItem.name);
+        if (existing) {
+            existing.quantity += clampedQty;
+        } else {
+            this.gear.push({ item: gearItem, quantity: clampedQty });
+        }
+        if (!free) {
+            this.cash -= gearItem.cost * clampedQty;
+        }
+        return true;
+    }
+    /**
      * Add a gear item while enforcing cost and requirements.
      */
     addGear(gearItem: GearItem): boolean {
-        if (!this.canAddGear(gearItem)) {
-            return false;
-        }
-        this.gear.push(gearItem);
-        this.cash -= gearItem.cost;
-        return true;
+        return this.addGearEntry(gearItem, 1, false);
     }
     /**
      * Remove a gear item by index and refund its cost.
      */
     removeGear(index: number) {
-        const item = this.gear[index];
-        if (!item) {
+        const entry = this.gear[index];
+        if (!entry) {
             return;
         }
-        this.cash += item.cost;
-        this.gear.splice(index, 1);
+        entry.quantity -= 1;
+        this.cash += entry.item.cost;
+        if (entry.quantity <= 0) {
+            this.gear.splice(index, 1);
+        }
     }
     /**
      * Randomize gear purchases until cash runs out or a stop condition hits.
@@ -1028,8 +1145,7 @@ export class Character {
                 }
                 try {
                     const gearItem: GearItem = this.getRandomGearItem({ max_cost: this.cash });
-                    this.gear.push(gearItem);
-                    this.cash -= gearItem.cost;
+                    this.addGearEntry(gearItem, 1, false);
                     console.log("gear cost", gearItem.cost, gearItem.name)
                 } catch (e) {
                     console.log(`Could not add any gear: ${e}`)

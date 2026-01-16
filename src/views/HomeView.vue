@@ -5,11 +5,13 @@ import {
     RequiredSkills,
     ClipChart,
     AmmoTypes,
+    RoleAbilities,
     CyberwareType,
     MeleeWeapons,
     RangedWeapons,
     ArmorList,
     Gear,
+    WeaponAttachments,
     Cyberware as CyberwareList
 } from '@/data';
 import SkillTables from '@/data/edge_runner_skill_tables';
@@ -161,9 +163,8 @@ const char_notes = computed({
     get: () => char.value.notes,
     set: (value) => char.value.notes = value
 })
-const char_other_notes = computed({
-    get: () => char.value.other_notes,
-    set: (value) => char.value.other_notes = value
+const role_ability = computed(() => {
+    return RoleAbilities[char.value.role] || null;
 })
 
 // const char_info = computed(() => {
@@ -329,11 +330,61 @@ function OpenAmmoTypeModal(ammoType: AmmoType) {
 const gear = computed(() => {
     return char.value.gear;
 });
+const programs = computed(() => {
+    return char.value.programs;
+});
+const fashion_items = computed(() => {
+    return char.value.fashion_items;
+});
 const gear_modal_visible = ref(false)
 const gear_modal = ref({ name: '', description: '', cost: 0 })
 function OpenGearModal(gear: { name: string, description: string, cost: number }) {
     gear_modal.value = gear;
     gear_modal_visible.value = true;
+}
+
+const program_name = ref("");
+const program_quantity = ref(1);
+const fashion_item_name = ref("");
+const fashion_item_quantity = ref(1);
+
+function addProgram() {
+    const name = program_name.value.trim();
+    if (!name) {
+        return;
+    }
+    const quantity = Number(program_quantity.value);
+    char.value.addMiscItem(char.value.programs, { name, quantity: quantity > 1 ? quantity : undefined });
+    program_name.value = "";
+    program_quantity.value = 1;
+}
+function removeProgram(index: number) {
+    char.value.programs.splice(index, 1);
+}
+function addFashionItem() {
+    const name = fashion_item_name.value.trim();
+    if (!name) {
+        return;
+    }
+    const quantity = Number(fashion_item_quantity.value);
+    char.value.addMiscItem(char.value.fashion_items, { name, quantity: quantity > 1 ? quantity : undefined });
+    fashion_item_name.value = "";
+    fashion_item_quantity.value = 1;
+}
+function removeFashionItem(index: number) {
+    const entry = char.value.fashion_items[index];
+    if (!entry) {
+        return;
+    }
+    const quantity = entry.quantity ?? 1;
+    if (quantity > 1) {
+        entry.quantity = quantity - 1;
+        if (entry.quantity <= 1) {
+            entry.quantity = undefined;
+        }
+        return;
+    }
+    char.value.fashion_items.splice(index, 1);
 }
 
 const {
@@ -572,6 +623,9 @@ function randomizeArmor() {
 const weapon_catalog = computed(() => {
     return [...MeleeWeapons, ...RangedWeapons].sort((a, b) => a.name.localeCompare(b.name));
 });
+const attachment_catalog = computed(() => {
+    return Object.values(WeaponAttachments).sort((a, b) => a.name.localeCompare(b.name));
+});
 const gear_catalog = computed(() => {
     return Object.values(Gear).sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -588,6 +642,9 @@ const armor_options = computed(() => {
 });
 const weapon_to_add = ref<Weapon | undefined>(undefined);
 const gear_to_add = ref<GearItem | undefined>(undefined);
+const attachment_to_add = ref<Record<number, WeaponAttachment | undefined>>({});
+const ammo_type_to_add = ref<Record<number, AmmoType | undefined>>({});
+const ammo_quantity_to_add = ref<Record<number, number>>({});
 const can_apply_armor = computed(() => {
     return char.value.canSetArmor({ location: armor_location.value, armor: armor_to_add.value });
 });
@@ -603,6 +660,35 @@ const can_add_gear = computed(() => {
     }
     return char.value.canAddGear(gear_to_add.value);
 });
+function availableAttachments(weapon: Weapon) {
+    return attachment_catalog.value.filter((attachment) => attachment.eligible.includes(weapon.name));
+}
+function availableAmmoTypes(weapon: Weapon) {
+    return AmmoTypes.filter((ammoType) => weapon.supportsAmmoType(ammoType));
+}
+function addAttachment(weaponIndex: number) {
+    const selection = attachment_to_add.value[weaponIndex];
+    if (!selection) {
+        return;
+    }
+    if (char.value.addWeaponAttachment(weaponIndex, selection)) {
+        attachment_to_add.value[weaponIndex] = undefined;
+    }
+}
+function removeAttachment(weaponIndex: number, attachmentIndex: number) {
+    char.value.removeWeaponAttachment(weaponIndex, attachmentIndex);
+}
+function addAmmoToWeapon(weaponIndex: number) {
+    const selection = ammo_type_to_add.value[weaponIndex];
+    if (!selection) {
+        return;
+    }
+    const quantity = Number(ammo_quantity_to_add.value[weaponIndex] ?? 10);
+    if (char.value.addAmmo(weaponIndex, selection, quantity)) {
+        ammo_type_to_add.value[weaponIndex] = undefined;
+        ammo_quantity_to_add.value[weaponIndex] = 10;
+    }
+}
 
 function applyArmorSelection() {
     char.value.setArmor({ location: armor_location.value, armor: armor_to_add.value });
@@ -643,10 +729,10 @@ function addGear() {
     }
 }
 function removeGear(index: number) {
-    const gearName = char.value.gear[index]?.name ?? "this gear";
+    const gearName = char.value.gear[index]?.item.name ?? "this gear";
     openConfirmModal({
         title: "Remove gear",
-        message: `Remove ${gearName}?`,
+        message: `Remove one ${gearName}?`,
         confirmLabel: "Remove",
         onConfirm: () => char.value.removeGear(index)
     })
@@ -768,7 +854,6 @@ generateCharacter(); // Generates a character on page load.
             <TextField class="p-4" title="Notes" :value-class="`font-normal`" :value="char_notes" />
         </div>
 
-        <hr class="my-2" />
         <CPTitle class="flex justify-between pr-2" :bottom-border="true">
             <div class="mr-4">Character Creation</div>
             <div class="font-normal">
@@ -802,6 +887,17 @@ generateCharacter(); // Generates a character on page load.
 
         <TextFieldRow :values="derived_stats" />
 
+        <hr class="my-2" />
+        <CPTitle class="flex justify-between pr-2">
+            <span>Role Ability</span>
+        </CPTitle>
+        <div class="border-x-4 border-b-4 border-red-500 bg-white p-3 text-sm text-black">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="font-bold">{{ role_ability?.name ?? "None" }}</div>
+                <div>Rank: {{ char_rank }}</div>
+            </div>
+            <div v-if="role_ability?.description" class="mt-1">{{ role_ability.description }}</div>
+        </div>
         <hr class="my-2" />
 
 
@@ -897,17 +993,39 @@ generateCharacter(); // Generates a character on page load.
                         <li v-if="weapon.attachments.length > 0">
                             Attachments:
                             <ul class="list-disc list-inside">
-                                <li v-for="attachment in weapon.attachments" class="cursor-pointer" @click="OpenAttachmentModal(attachment)" :key="`attachment_${attachment}`">
-                                    <span class="underline decoration-dashed">{{ attachment.name }}</span>
+                                <li v-for="(attachment, attachmentIndex) in weapon.attachments" :key="`attachment_${weaponIndex}_${attachmentIndex}`">
+                                    <span class="cursor-pointer underline decoration-dashed" @click="OpenAttachmentModal(attachment)">{{ attachment.name }}</span>
                                     <span v-if="['Drum Magazine', 'Extended Magazine'].includes(attachment.name)">
-                                        ({{ clip_chart[weapon.getKey()][attachment.name.split(" ")[0].toLowerCase()]
-                                        }}
-                                        rounds)
+                                        ({{ clip_chart[weapon.getKey()][attachment.name.split(" ")[0].toLowerCase()] }} rounds)
                                     </span>
+                                    <CPButton class="ml-2" @click="removeAttachment(weaponIndex, attachmentIndex)">Remove</CPButton>
                                 </li>
                             </ul>
                         </li>
                     </ul>
+                    <div class="mt-2 grid gap-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select v-model="attachment_to_add[weaponIndex]" class="px-2 py-1">
+                                <option :value="undefined" selected disabled>Add Attachment</option>
+                                <option v-for="attachment in availableAttachments(weapon)" :key="`attachment_option_${weaponIndex}_${attachment.name}`" :value="attachment"
+                                    :disabled="!char.canAddWeaponAttachment(weapon, attachment)">
+                                    {{ attachment.name }} - {{ attachment.cost }}eb
+                                </option>
+                            </select>
+                            <CPButton :disabled="!attachment_to_add[weaponIndex]" @click="addAttachment(weaponIndex)">Add</CPButton>
+                        </div>
+                        <div v-if="weapon.ammo_type.length > 0" class="flex flex-wrap items-center gap-2">
+                            <select v-model="ammo_type_to_add[weaponIndex]" class="px-2 py-1">
+                                <option :value="undefined" selected disabled>Buy Ammo</option>
+                                <option v-for="ammoType in availableAmmoTypes(weapon)" :key="`ammo_option_${weaponIndex}_${ammoType.name}`" :value="ammoType"
+                                    :disabled="!char.canAddAmmo(weapon, ammoType, Number(ammo_quantity_to_add[weaponIndex] ?? 10))">
+                                    {{ ammoType.name }} - {{ ammoType.cost }}eb
+                                </option>
+                            </select>
+                            <input v-model="ammo_quantity_to_add[weaponIndex]" class="w-20 px-2 py-1 text-right" type="number" min="1" />
+                            <CPButton :disabled="!ammo_type_to_add[weaponIndex]" @click="addAmmoToWeapon(weaponIndex)">Buy</CPButton>
+                        </div>
+                    </div>
                 </CPCell>
                 <CPCell class="text-right">{{ weapon.cost }}eb</CPCell>
                 <CPCell class="text-right">
@@ -984,7 +1102,7 @@ generateCharacter(); // Generates a character on page load.
         </Modal>
         <hr class="my-2" />
 
-        <CPTable title="Gear" :headers="['Item', 'Description', 'Cost', 'Actions']" :creation_method :randomize="randomizeGear">
+        <CPTable title="Gear" :headers="['Item', 'Description', 'Qty', 'Cost', 'Actions']" :creation_method :randomize="randomizeGear">
             <template #title>
                 <div class="flex items-center gap-2 font-bold">
                     <span>Gear</span>
@@ -1004,13 +1122,14 @@ generateCharacter(); // Generates a character on page load.
                 </div>
             </template>
             <CPRow v-if="gear.length <= 0">
-                <td colspan="4" class="text-center">No Gear</td>
+                <td colspan="5" class="text-center">No Gear</td>
             </CPRow>
-            <CPRow v-for="(gear_item, gearIndex) in gear" :key="`gear_${gear_item.name}_${gearIndex}`">
-                <CPCell>{{ gear_item.name }}</CPCell>
+            <CPRow v-for="(gear_entry, gearIndex) in gear" :key="`gear_${gear_entry.item.name}_${gearIndex}`">
+                <CPCell>{{ gear_entry.item.name }}</CPCell>
                 <!-- <CPCell><span class="whitespace-pre-wrap" v-html="gear_item.description"></span></CPCell> -->
-                <CPCell><span class="cursor-pointer underline decoration-dashed" @click="OpenGearModal(gear_item)">{{ gear_item.description.slice(0, 25) }}...</span></CPCell>
-                <CPCell class="text-right">{{ gear_item.cost }}eb </CPCell>
+                <CPCell><span class="cursor-pointer underline decoration-dashed" @click="OpenGearModal(gear_entry.item)">{{ gear_entry.item.description.slice(0, 25) }}...</span></CPCell>
+                <CPCell class="text-right">{{ gear_entry.quantity }}</CPCell>
+                <CPCell class="text-right">{{ gear_entry.item.cost }}eb </CPCell>
                 <CPCell class="text-right">
                     <CPButton @click="removeGear(gearIndex)">Remove</CPButton>
                 </CPCell>
@@ -1025,12 +1144,47 @@ generateCharacter(); // Generates a character on page load.
         </Modal>
         <hr class="my-2" />
 
-        <CPTitle class="flex justify-between pr-2">
-            <span>Other</span>
-        </CPTitle>
-        <div class="border-x-4 border-b-4 border-red-500 bg-white p-3 text-sm text-black">
-            <textarea v-model="char_other_notes" class="w-full min-h-[8rem] p-2" placeholder="Add other notes here."></textarea>
-        </div>
+        <CPTable title="Programs" :headers="['Program', 'Qty', 'Actions']">
+            <template #controls>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input v-model="program_name" class="px-2 py-1" placeholder="Program name" />
+                    <input v-model="program_quantity" class="w-20 px-2 py-1 text-right" type="number" min="1" />
+                    <CPButton @click="addProgram">Add</CPButton>
+                </div>
+            </template>
+            <CPRow v-if="programs.length <= 0">
+                <td colspan="3" class="text-center">No Programs</td>
+            </CPRow>
+            <CPRow v-for="(program, programIndex) in programs" :key="`program_${program.name}_${programIndex}`">
+                <CPCell>{{ program.name }}</CPCell>
+                <CPCell class="text-right">{{ program.quantity ?? 1 }}</CPCell>
+                <CPCell class="text-right">
+                    <CPButton @click="removeProgram(programIndex)">Remove</CPButton>
+                </CPCell>
+            </CPRow>
+        </CPTable>
+        <hr class="my-2" />
+
+        <CPTable title="Fashion" :headers="['Item', 'Qty', 'Actions']">
+            <template #controls>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input v-model="fashion_item_name" class="px-2 py-1" placeholder="Fashion item" />
+                    <input v-model="fashion_item_quantity" class="w-20 px-2 py-1 text-right" type="number" min="1" />
+                    <CPButton @click="addFashionItem">Add</CPButton>
+                </div>
+            </template>
+            <CPRow v-if="fashion_items.length <= 0">
+                <td colspan="3" class="text-center">No Fashion Items</td>
+            </CPRow>
+            <CPRow v-for="(item, itemIndex) in fashion_items" :key="`fashion_${item.name}_${itemIndex}`">
+                <CPCell>{{ item.name }}</CPCell>
+                <CPCell class="text-right">{{ item.quantity ?? 1 }}</CPCell>
+                <CPCell class="text-right">
+                    <CPButton @click="removeFashionItem(itemIndex)">Remove</CPButton>
+                </CPCell>
+            </CPRow>
+        </CPTable>
+        <hr class="my-2" />
         <Modal :visible="catalog_modal_visible" @close="catalog_modal_visible = false">
             <div class="p-1">
                 <div class="flex items-center justify-between gap-4">

@@ -82,15 +82,15 @@ const items = [
         name: "Video Camera"
     }],
     [{
-        type: "other",
+        type: "fashion",
         name: "Generic Chic: Jacket, Jewelry x3, Top x4"
     }],
     [{
-        type: "other",
+        type: "fashion",
         name: "Leisurewear: Jewelry, Mirrorshades, Footwear"
     }],
     [{
-        type: "other",
+        type: "fashion",
         name: "Urbanflash: Bottoms, Top"
     }],
     [{

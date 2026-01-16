@@ -15,6 +15,7 @@ import { ArmorList } from './armor'
 import { ClipChart } from './clip_chart'
 import { AmmoTypes } from './ammo_types'
 import { Gear } from './gear'
+import { RoleAbilities } from './role_abilities'
 import { } from './role_lifepath_tables';
 
 export {
@@ -33,5 +34,6 @@ export {
     Gear,
     BodyLocation,
     CyberwareType,
-    Cyberware
+    Cyberware,
+    RoleAbilities
 }

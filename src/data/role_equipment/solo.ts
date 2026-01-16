@@ -37,7 +37,7 @@ const items = [
         name: "Agent"
     }],
     [{
-        type: "other",
+        type: "fashion",
         name: "Leisurewear: Footwear x2, Jacket x3, Mirrorshades, Bottoms x2, Top x2"
     }],
     [{
