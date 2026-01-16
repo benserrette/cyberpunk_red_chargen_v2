@@ -290,6 +290,12 @@ function OpenAttachmentModal(attachment: WeaponAttachment) {
     weapon_attachment_modal.value = attachment;
     weapon_attachment_modal_visible.value = true;
 }
+const attachment_manage_modal_visible = ref(false);
+const attachment_manage_weapon_index = ref<number | null>(null);
+function openAttachmentManageModal(weaponIndex: number) {
+    attachment_manage_weapon_index.value = weaponIndex;
+    attachment_manage_modal_visible.value = true;
+}
 const armor_modal_visible = ref(false)
 const armor_modal = ref<Armor>({ armor_type: '', sp: 0, penalty: [], cost: 0, description: "" })
 function OpenArmorModal(armor: Armor) {
@@ -316,6 +322,12 @@ const ammo_type_modal = ref<AmmoType>({
 function OpenAmmoTypeModal(ammoType: AmmoType) {
     ammo_type_modal.value = ammoType;
     ammo_type_modal_visible.value = true;
+}
+const ammo_manage_modal_visible = ref(false);
+const ammo_manage_weapon_index = ref<number | null>(null);
+function openAmmoManageModal(weaponIndex: number) {
+    ammo_manage_weapon_index.value = weaponIndex;
+    ammo_manage_modal_visible.value = true;
 }
 
 
@@ -689,6 +701,14 @@ function addAmmoToWeapon(weaponIndex: number) {
         ammo_quantity_to_add.value[weaponIndex] = 10;
     }
 }
+function closeAttachmentManageModal() {
+    attachment_manage_modal_visible.value = false;
+    attachment_manage_weapon_index.value = null;
+}
+function closeAmmoManageModal() {
+    ammo_manage_modal_visible.value = false;
+    ammo_manage_weapon_index.value = null;
+}
 
 function applyArmorSelection() {
     char.value.setArmor({ location: armor_location.value, armor: armor_to_add.value });
@@ -1003,33 +1023,14 @@ generateCharacter(); // Generates a character on page load.
                             </ul>
                         </li>
                     </ul>
-                    <div class="mt-2 grid gap-2 text-xs">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <select v-model="attachment_to_add[weaponIndex]" class="px-2 py-1">
-                                <option :value="undefined" selected disabled>Add Attachment</option>
-                                <option v-for="attachment in availableAttachments(weapon)" :key="`attachment_option_${weaponIndex}_${attachment.name}`" :value="attachment"
-                                    :disabled="!char.canAddWeaponAttachment(weapon, attachment)">
-                                    {{ attachment.name }} - {{ attachment.cost }}eb
-                                </option>
-                            </select>
-                            <CPButton :disabled="!attachment_to_add[weaponIndex]" @click="addAttachment(weaponIndex)">Add</CPButton>
-                        </div>
-                        <div v-if="weapon.ammo_type.length > 0" class="flex flex-wrap items-center gap-2">
-                            <select v-model="ammo_type_to_add[weaponIndex]" class="px-2 py-1">
-                                <option :value="undefined" selected disabled>Buy Ammo</option>
-                                <option v-for="ammoType in availableAmmoTypes(weapon)" :key="`ammo_option_${weaponIndex}_${ammoType.name}`" :value="ammoType"
-                                    :disabled="!char.canAddAmmo(weapon, ammoType, Number(ammo_quantity_to_add[weaponIndex] ?? 10))">
-                                    {{ ammoType.name }} - {{ ammoType.cost }}eb
-                                </option>
-                            </select>
-                            <input v-model="ammo_quantity_to_add[weaponIndex]" class="w-20 px-2 py-1 text-right" type="number" min="1" />
-                            <CPButton :disabled="!ammo_type_to_add[weaponIndex]" @click="addAmmoToWeapon(weaponIndex)">Buy</CPButton>
-                        </div>
-                    </div>
                 </CPCell>
                 <CPCell class="text-right">{{ weapon.cost }}eb</CPCell>
                 <CPCell class="text-right">
-                    <CPButton @click="removeWeapon(weaponIndex)">Remove</CPButton>
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <CPButton @click="openAttachmentManageModal(weaponIndex)">Add Attachment</CPButton>
+                        <CPButton v-if="weapon.ammo_type.length > 0" @click="openAmmoManageModal(weaponIndex)">Buy Ammo</CPButton>
+                        <CPButton @click="removeWeapon(weaponIndex)">Remove</CPButton>
+                    </div>
                 </CPCell>
             </CPRow>
         </CPTable>
@@ -1040,11 +1041,62 @@ generateCharacter(); // Generates a character on page load.
                 <CPButton @click="weapon_attachment_modal_visible = false">Close</CPButton>
             </div>
         </Modal>
+        <Modal :visible="attachment_manage_modal_visible" @close="closeAttachmentManageModal">
+            <div class="p-1">
+                <h2 class="text-lg font-bold">Add Attachment</h2>
+                <div v-if="attachment_manage_weapon_index !== null" class="mt-2 flex flex-wrap items-center gap-2">
+                    <select v-model="attachment_to_add[attachment_manage_weapon_index]" class="px-2 py-1">
+                        <option :value="undefined" selected disabled>Select Attachment</option>
+                        <option
+                            v-for="attachment in availableAttachments(char.weapons[attachment_manage_weapon_index])"
+                            :key="`attachment_option_modal_${attachment_manage_weapon_index}_${attachment.name}`"
+                            :value="attachment"
+                            :disabled="!char.canAddWeaponAttachment(char.weapons[attachment_manage_weapon_index], attachment)"
+                        >
+                            {{ attachment.name }} - {{ attachment.cost }}eb
+                        </option>
+                    </select>
+                    <CPButton
+                        :disabled="!attachment_to_add[attachment_manage_weapon_index]"
+                        @click="addAttachment(attachment_manage_weapon_index)"
+                    >
+                        Add
+                    </CPButton>
+                </div>
+                <CPButton class="mt-4" @click="closeAttachmentManageModal">Close</CPButton>
+            </div>
+        </Modal>
         <Modal :visible="ammo_type_modal_visible" @close="ammo_type_modal_visible = false">
             <div class="p-1">
                 <h2 class="text-lg font-bold">{{ ammo_type_modal.name }}</h2>
                 <p>{{ ammo_type_modal.description }}</p>
                 <CPButton class="mt-4" @click="ammo_type_modal_visible = false">Close</CPButton>
+            </div>
+        </Modal>
+        <Modal :visible="ammo_manage_modal_visible" @close="closeAmmoManageModal">
+            <div class="p-1">
+                <h2 class="text-lg font-bold">Buy Ammo</h2>
+                <div v-if="ammo_manage_weapon_index !== null" class="mt-2 flex flex-wrap items-center gap-2">
+                    <select v-model="ammo_type_to_add[ammo_manage_weapon_index]" class="px-2 py-1">
+                        <option :value="undefined" selected disabled>Select Ammo</option>
+                        <option
+                            v-for="ammoType in availableAmmoTypes(char.weapons[ammo_manage_weapon_index])"
+                            :key="`ammo_option_modal_${ammo_manage_weapon_index}_${ammoType.name}`"
+                            :value="ammoType"
+                            :disabled="!char.canAddAmmo(char.weapons[ammo_manage_weapon_index], ammoType, Number(ammo_quantity_to_add[ammo_manage_weapon_index] ?? 10))"
+                        >
+                            {{ ammoType.name }} - {{ ammoType.cost }}eb
+                        </option>
+                    </select>
+                    <input v-model="ammo_quantity_to_add[ammo_manage_weapon_index]" class="w-20 px-2 py-1 text-right" type="number" min="1" />
+                    <CPButton
+                        :disabled="!ammo_type_to_add[ammo_manage_weapon_index]"
+                        @click="addAmmoToWeapon(ammo_manage_weapon_index)"
+                    >
+                        Buy
+                    </CPButton>
+                </div>
+                <CPButton class="mt-4" @click="closeAmmoManageModal">Close</CPButton>
             </div>
         </Modal>
 
