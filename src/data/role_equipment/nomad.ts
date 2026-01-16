@@ -78,11 +78,19 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Bohemian: Jewelry"
+        items: [
+            { style: "Bohemian", item_type: "Jewelry" }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Nomad Leathers: Top x4, Bottom x2, Footwear x2, Jacket, Hat"
+        items: [
+            { style: "Nomad Leathers", item_type: "Top", quantity: 4 },
+            { style: "Nomad Leathers", item_type: "Bottoms", quantity: 2 },
+            { style: "Nomad Leathers", item_type: "Footwear", quantity: 2 },
+            { style: "Nomad Leathers", item_type: "Jacket" },
+            { style: "Nomad Leathers", item_type: "Hat" }
+        ]
     }],
     [{
         type: "cyberware",

@@ -96,11 +96,16 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic: Bottoms x8, Tops x10",
+        items: [
+            { style: "Generic Chic", item_type: "Bottoms", quantity: 8 },
+            { style: "Generic Chic", item_type: "Top", quantity: 10 }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Footwear x2",
+        items: [
+            { style: "Leisurewear", item_type: "Footwear", quantity: 2 }
+        ]
     }],
     [{
         type: "cyberware",
@@ -149,5 +154,4 @@ export default items;
 // Body Armor (SP11)
 // Light Armorjack
 // Head Armor (SP11)
-
 

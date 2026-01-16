@@ -61,11 +61,21 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic: Jacket, Bottoms x2, Top x3"
+        items: [
+            { style: "Generic Chic", item_type: "Jacket" },
+            { style: "Generic Chic", item_type: "Bottoms", quantity: 2 },
+            { style: "Generic Chic", item_type: "Top", quantity: 3 }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Footwear x2, Jacket x2, Bottoms x2, Mirrorshades, Top x2"
+        items: [
+            { style: "Leisurewear", item_type: "Footwear", quantity: 2 },
+            { style: "Leisurewear", item_type: "Jacket", quantity: 2 },
+            { style: "Leisurewear", item_type: "Bottoms", quantity: 2 },
+            { style: "Leisurewear", item_type: "Mirrorshades" },
+            { style: "Leisurewear", item_type: "Top", quantity: 2 }
+        ]
     }],
     [{
         type: "cyberware",

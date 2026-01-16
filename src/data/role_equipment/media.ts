@@ -66,15 +66,23 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic: Footwear, Bottoms, Top"
+        items: [
+            { style: "Generic Chic", item_type: "Footwear" },
+            { style: "Generic Chic", item_type: "Bottoms" },
+            { style: "Generic Chic", item_type: "Top" }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Jacket"
+        items: [
+            { style: "Leisurewear", item_type: "Jacket" }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Urbanflash: Mirrorshades"
+        items: [
+            { style: "Urbanflash", item_type: "Mirrorshades" }
+        ]
     }],
     [{
         type: "cyberware",

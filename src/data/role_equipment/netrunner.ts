@@ -53,15 +53,23 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic: Top x10"
+        items: [
+            { style: "Generic Chic", item_type: "Top", quantity: 10 }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Footwear x2, Jewelry, Bottoms x2"
+        items: [
+            { style: "Leisurewear", item_type: "Footwear", quantity: 2 },
+            { style: "Leisurewear", item_type: "Jewelry" },
+            { style: "Leisurewear", item_type: "Bottoms", quantity: 2 }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Urban Flash:  Jacket"
+        items: [
+            { style: "Urban Flash", item_type: "Jacket" }
+        ]
     }],
 
     [{

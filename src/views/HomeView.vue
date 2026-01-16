@@ -357,7 +357,8 @@ function OpenGearModal(gear: { name: string, description: string, cost: number }
 
 const program_name = ref("");
 const program_quantity = ref(1);
-const fashion_item_name = ref("");
+const fashion_item_style = ref("");
+const fashion_item_type = ref("");
 const fashion_item_quantity = ref(1);
 
 function addProgram() {
@@ -374,13 +375,19 @@ function removeProgram(index: number) {
     char.value.programs.splice(index, 1);
 }
 function addFashionItem() {
-    const name = fashion_item_name.value.trim();
-    if (!name) {
+    const style = fashion_item_style.value.trim();
+    const item_type = fashion_item_type.value.trim();
+    if (!style || !item_type) {
         return;
     }
     const quantity = Number(fashion_item_quantity.value);
-    char.value.addMiscItem(char.value.fashion_items, { name, quantity: quantity > 1 ? quantity : undefined });
-    fashion_item_name.value = "";
+    char.value.addFashionItem(char.value.fashion_items, {
+        style,
+        item_type,
+        quantity: quantity > 1 ? quantity : undefined
+    });
+    fashion_item_style.value = "";
+    fashion_item_type.value = "";
     fashion_item_quantity.value = 1;
 }
 function removeFashionItem(index: number) {
@@ -1221,19 +1228,21 @@ generateCharacter(); // Generates a character on page load.
         </CPTable>
         <hr class="my-2" />
 
-        <CPTable title="Fashion" :headers="['Item', 'Qty', 'Actions']">
+        <CPTable title="Fashion" :headers="['Style', 'Type', 'Qty', 'Actions']">
             <template #controls>
                 <div class="flex flex-wrap items-center gap-2">
-                    <input v-model="fashion_item_name" class="px-2 py-1" placeholder="Fashion item" />
+                    <input v-model="fashion_item_style" class="px-2 py-1" placeholder="Style" />
+                    <input v-model="fashion_item_type" class="px-2 py-1" placeholder="Type" />
                     <input v-model="fashion_item_quantity" class="w-20 px-2 py-1 text-right" type="number" min="1" />
                     <CPButton @click="addFashionItem">Add</CPButton>
                 </div>
             </template>
             <CPRow v-if="fashion_items.length <= 0">
-                <td colspan="3" class="text-center">No Fashion Items</td>
+                <td colspan="4" class="text-center">No Fashion Items</td>
             </CPRow>
-            <CPRow v-for="(item, itemIndex) in fashion_items" :key="`fashion_${item.name}_${itemIndex}`">
-                <CPCell>{{ item.name }}</CPCell>
+            <CPRow v-for="(item, itemIndex) in fashion_items" :key="`fashion_${item.style}_${item.item_type}_${itemIndex}`">
+                <CPCell>{{ item.style }}</CPCell>
+                <CPCell>{{ item.item_type }}</CPCell>
                 <CPCell class="text-right">{{ item.quantity ?? 1 }}</CPCell>
                 <CPCell class="text-right">
                     <CPButton @click="removeFashionItem(itemIndex)">Remove</CPButton>

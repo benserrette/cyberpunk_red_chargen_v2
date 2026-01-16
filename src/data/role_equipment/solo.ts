@@ -38,7 +38,13 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Footwear x2, Jacket x3, Mirrorshades, Bottoms x2, Top x2"
+        items: [
+            { style: "Leisurewear", item_type: "Footwear", quantity: 2 },
+            { style: "Leisurewear", item_type: "Jacket", quantity: 3 },
+            { style: "Leisurewear", item_type: "Mirrorshades" },
+            { style: "Leisurewear", item_type: "Bottoms", quantity: 2 },
+            { style: "Leisurewear", item_type: "Top", quantity: 2 }
+        ]
     }],
     [{
         type: "cyberware",

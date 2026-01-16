@@ -56,15 +56,25 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic: Contacts, Jewelry"
+        items: [
+            { style: "Generic Chic", item_type: "Contacts" },
+            { style: "Generic Chic", item_type: "Jewelry" }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Mirrorshades"
+        items: [
+            { style: "Leisurewear", item_type: "Mirrorshades" }
+        ]
     }],
     [{
         type: "fashion",
-        name: "Urbanflash: Footwear, Jacket, Bottoms, Top"
+        items: [
+            { style: "Urbanflash", item_type: "Footwear" },
+            { style: "Urbanflash", item_type: "Jacket" },
+            { style: "Urbanflash", item_type: "Bottoms" },
+            { style: "Urbanflash", item_type: "Top" }
+        ]
     }],
     [{
         type: "cyberware",

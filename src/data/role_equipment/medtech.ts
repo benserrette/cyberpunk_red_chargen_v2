@@ -51,7 +51,9 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Generic Chic Jacket x3"
+        items: [
+            { style: "Generic Chic", item_type: "Jacket", quantity: 3 }
+        ]
     }],
     [{
         type: "gear",
@@ -63,7 +65,11 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Leisurewear: Footwear, Bottoms x3, Top x5"
+        items: [
+            { style: "Leisurewear", item_type: "Footwear" },
+            { style: "Leisurewear", item_type: "Bottoms", quantity: 3 },
+            { style: "Leisurewear", item_type: "Top", quantity: 5 }
+        ]
     }],
     [{
         type: "cyberware",

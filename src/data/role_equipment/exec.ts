@@ -42,7 +42,14 @@ const items = [
     }],
     [{
         type: "fashion",
-        name: "Businesswear: Footwear, Jacket, Bottoms, Mirrorshades, Top, Jewelry x2"
+        items: [
+            { style: "Businesswear", item_type: "Footwear" },
+            { style: "Businesswear", item_type: "Jacket" },
+            { style: "Businesswear", item_type: "Bottoms" },
+            { style: "Businesswear", item_type: "Mirrorshades" },
+            { style: "Businesswear", item_type: "Top" },
+            { style: "Businesswear", item_type: "Jewelry", quantity: 2 }
+        ]
     }],
     [{
         type: "cyberware",

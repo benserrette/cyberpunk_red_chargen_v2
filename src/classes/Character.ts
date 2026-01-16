@@ -89,6 +89,11 @@ type MiscItem = {
     name: string;
     quantity?: number;
 };
+type FashionItem = {
+    style: string;
+    item_type: string;
+    quantity?: number;
+};
 type OwnedGear = {
     item: GearItem;
     quantity: number;
@@ -124,7 +129,7 @@ export class Character {
     weapons: Weapon[] = []
     gear: OwnedGear[] = []
     programs: MiscItem[] = []
-    fashion_items: MiscItem[] = []
+    fashion_items: FashionItem[] = []
     housing: string = ""
     rent: number = 0
     lifestyle: string = ""
@@ -241,14 +246,19 @@ export class Character {
                             this.installCyberware({ cyberware: new Cyberware({ ...cyberware }), free: true });
                         }
                     }
-                    else if (item.type === "fashion" || item.type === "program" || item.type === "other") {
+                    else if (item.type === "fashion" || item.type === "program") {
                         if (item.quantity && item.quantity > 1 && i > 0) {
                             continue;
                         }
-                        const miscItem = { name: item.name, quantity: item.quantity };
-                        if (item.type === "fashion" || item.type === "other") {
-                            this.addMiscItem(this.fashion_items, miscItem);
+                        if (item.type === "fashion") {
+                            const fashionItems = Array.isArray(item.items)
+                                ? item.items
+                                : (item.style && item.item_type ? [{ style: item.style, item_type: item.item_type, quantity: item.quantity }] : []);
+                            for (const fashionItem of fashionItems) {
+                                this.addFashionItem(this.fashion_items, fashionItem);
+                            }
                         } else if (item.type === "program") {
+                            const miscItem = { name: item.name, quantity: item.quantity };
                             this.addMiscItem(this.programs, miscItem);
                         }
                     }
@@ -286,6 +296,24 @@ export class Character {
             return;
         }
         list.push({ name: item.name, quantity: quantity > 1 ? quantity : undefined });
+    }
+
+    /**
+     * Merge a fashion item into a list, consolidating quantities by style and type.
+     */
+    addFashionItem(list: FashionItem[], item: FashionItem) {
+        const style = item.style?.trim();
+        const item_type = item.item_type?.trim();
+        if (!style || !item_type) {
+            return;
+        }
+        const quantity = item.quantity && item.quantity > 1 ? item.quantity : 1;
+        const existing = list.find((entry) => entry.style === style && entry.item_type === item_type);
+        if (existing) {
+            existing.quantity = (existing.quantity ?? 1) + quantity;
+            return;
+        }
+        list.push({ style, item_type, quantity: quantity > 1 ? quantity : undefined });
     }
 
     /**
