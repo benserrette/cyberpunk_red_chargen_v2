@@ -55,6 +55,7 @@ const char = ref<Character>(new Character({ creation_method: creation_method.val
  */
 function generateCharacter() {
     char.value.reset({ creation_method: creation_method.value, role: role.value });
+    char.value.randomizeStats();
 
     if (creation_method.value === 'complete') {
         char.value.randomizeWeapons();
@@ -74,7 +75,6 @@ function generateCharacter() {
             }
         }
     }
-    char.value.randomizeStats();
     char.value.randomizeSkills();
     walkLifepath();
     walkRoleLifepath();
@@ -874,6 +874,7 @@ generateCharacter(); // Generates a character on page load.
             <TextField class="p-4" title="Notes" :value-class="`font-normal`" :value="char_notes" />
         </div>
 
+        <hr class="my-2" />
         <CPTitle class="flex justify-between pr-2" :bottom-border="true">
             <div class="mr-4">Character Creation</div>
             <div class="font-normal">
@@ -953,7 +954,10 @@ generateCharacter(); // Generates a character on page load.
         </div>
         <hr class="my-2" />
 
-        <CPTable title="Weapons" :headers="['Weapon', 'Examples', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
+        <CPTable
+            title="Weapons"
+            :headers="['Weapon', 'Examples', 'Skill', 'Damage', 'Ammo', 'ROF', 'Notes', 'Cost', 'Actions']"
+            :header-classes="['', 'hidden md:table-cell', '', '', 'hidden md:table-cell', 'hidden md:table-cell', '', 'hidden md:table-cell', '']"
             :creation_method :randomize="randomizeWeapons">
             <template #title>
                 <div class="flex items-center gap-2 font-bold">
@@ -978,12 +982,12 @@ generateCharacter(); // Generates a character on page load.
             </CPRow>
             <CPRow v-for="(weapon, weaponIndex) in char.weapons" :key="`weapon_${weapon.name}_${weaponIndex}`">
                 <CPCell>{{ weapon.name }}</CPCell>
-                <CPCell>
+                <CPCell class="hidden md:table-cell">
                     {{ getWeaponExamples(weapon) }}
                 </CPCell>
                 <CPCell>{{ char.skills[weapon.skill].name }}</CPCell>
                 <CPCell class="text-center">{{ weapon.damage }}</CPCell>
-                <CPCell v-if="weapon.ammo_type.length > 0">
+                <CPCell v-if="weapon.ammo_type.length > 0" class="hidden md:table-cell">
                     <div>{{ weapon.ammo_type.join(', ') }}</div>
                     <ul class="list-disc list-inside">
 
@@ -997,8 +1001,8 @@ generateCharacter(); // Generates a character on page load.
                         </li>
                     </ul>
                 </CPCell>
-                <CPCell v-else></CPCell>
-                <CPCell class="text-center">{{ weapon.rof }}</CPCell>
+                <CPCell v-else class="hidden md:table-cell"></CPCell>
+                <CPCell class="hidden md:table-cell text-center">{{ weapon.rof }}</CPCell>
                 <CPCell>
                     <ul>
                         <li v-if="weapon.ammo_type.length > 0 && !weapon.ammo_type.includes('Arrow')">Standard Mag
@@ -1018,13 +1022,13 @@ generateCharacter(); // Generates a character on page load.
                                     <span v-if="['Drum Magazine', 'Extended Magazine'].includes(attachment.name)">
                                         ({{ clip_chart[weapon.getKey()][attachment.name.split(" ")[0].toLowerCase()] }} rounds)
                                     </span>
-                                    <CPButton class="ml-2" @click="removeAttachment(weaponIndex, attachmentIndex)">Remove</CPButton>
+                                    <CPButton class="ml-2 px-2 py-0 text-xs" @click="removeAttachment(weaponIndex, attachmentIndex)">X</CPButton>
                                 </li>
                             </ul>
                         </li>
                     </ul>
                 </CPCell>
-                <CPCell class="text-right">{{ weapon.cost }}eb</CPCell>
+                <CPCell class="hidden md:table-cell text-right">{{ weapon.cost }}eb</CPCell>
                 <CPCell class="text-right">
                     <div class="flex flex-wrap justify-end gap-2">
                         <CPButton @click="openAttachmentManageModal(weaponIndex)">Add Attachment</CPButton>

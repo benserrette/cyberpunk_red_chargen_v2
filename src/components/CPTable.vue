@@ -6,6 +6,7 @@ import CPButton from '@/components/CPButton.vue'
  */
 const props = defineProps<{
     headers?: string[],
+    headerClasses?: string[],
     title: string,
     randomize?: Function,
     creation_method?: string
@@ -43,7 +44,14 @@ function randomize() {
     <table class="w-full">
         <thead v-if="show_header">
             <tr class="text-xs bg-black text-white ">
-                <th class="text-left border-x-4 border-red-500 p-1" v-for="column_header of headers">{{ column_header }}</th>
+                <th
+                    v-for="(column_header, index) of headers"
+                    :key="`header_${column_header}_${index}`"
+                    class="text-left border-x-4 border-red-500 p-1"
+                    :class="headerClasses?.[index] || ''"
+                >
+                    {{ column_header }}
+                </th>
             </tr>
         </thead>
         <tbody>
