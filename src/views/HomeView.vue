@@ -128,25 +128,29 @@ async function copyExportToClipboard() {
 
 async function openImportModal() {
     import_error.value = "";
+    let clipboardText = "";
+    try {
+        clipboardText = await navigator.clipboard.readText();
+    } catch (e) {
+        // Ignore clipboard read errors; user can paste manually.
+    }
+    if (clipboardText) {
+        try {
+            const parsed = JSON.parse(clipboardText);
+            if (isValidImportPayload(parsed)) {
+                import_json.value = clipboardText;
+                importCharacter();
+                return;
+            }
+        } catch (e) {
+            // Ignore clipboard parse errors; user can paste manually.
+        }
+    }
     import_modal_visible.value = true;
     await nextTick();
     if (import_textarea_ref.value) {
         import_textarea_ref.value.focus();
         import_textarea_ref.value.select();
-    }
-    try {
-        const clipboardText = await navigator.clipboard.readText();
-        if (!clipboardText) {
-            return;
-        }
-        const parsed = JSON.parse(clipboardText);
-        if (isValidImportPayload(parsed)) {
-            import_json.value = clipboardText;
-            importCharacter();
-            return;
-        }
-    } catch (e) {
-        // Ignore clipboard read/parse errors; user can paste manually.
     }
 }
 
@@ -967,6 +971,31 @@ generateCharacter(); // Generates a character on page load.
 .skills .columns-1 {
     column-rule: 4px solid white;
 }
+
+.toast {
+    animation: toast-pop 0.2s ease-out, toast-fade 0.3s ease-in 2.7s forwards;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes toast-pop {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-fade {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
 </style>
 <template>
     <main class="container p-4 mx-auto">
@@ -1596,7 +1625,7 @@ generateCharacter(); // Generates a character on page load.
             </div>
         </Modal>
 
-        <div v-if="toast_visible" class="fixed right-4 top-4 z-50 border-4 border-red-500 bg-white px-4 py-2 text-sm font-bold text-black">
+        <div v-if="toast_visible" class="toast fixed right-4 top-4 z-50 border-4 border-red-500 bg-white px-4 py-2 text-sm font-bold text-black">
             {{ toast_message }}
         </div>
 
