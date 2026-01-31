@@ -19,15 +19,13 @@ const props = defineProps<{
     onSkillUpdate?: (skill: Skill, level: number) => number;
 }>();
 
-const { char, category } = props;
-
 const filtered_skills = computed(() => {
     let skills: Skill[] = []
 
-    if (category !== undefined) {
-        for (const skill_key in char.skills) {
-            const skill = char.skills[skill_key];
-            if (SkillCategories[category].includes(skill.name)) {
+    if (props.category !== undefined) {
+        for (const skill_key in props.char.skills) {
+            const skill = props.char.skills[skill_key];
+            if (SkillCategories[props.category].includes(skill.name)) {
                 skills.push(skill)
             }
         }
@@ -37,8 +35,8 @@ const filtered_skills = computed(() => {
             skills.push(skill)
         }
     } else {
-        for (const skill_key in char.skills) {
-            const skill = char.skills[skill_key];
+        for (const skill_key in props.char.skills) {
+            const skill = props.char.skills[skill_key];
             skills.push(skill)
         }
     }

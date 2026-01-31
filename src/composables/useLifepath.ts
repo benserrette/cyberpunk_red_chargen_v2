@@ -173,6 +173,24 @@ export function useLifepath({ char, role }: UseLifepathOptions) {
         rebuildRoleLifepathFromSelections();
     };
 
+    const getLifepathSelections = () => {
+        return { ...lifepathSelections.value };
+    };
+
+    const getRoleLifepathSelections = () => {
+        return { ...roleLifepathSelections.value };
+    };
+
+    const setLifepathSelections = (selections: Record<string, number>) => {
+        lifepathSelections.value = { ...selections };
+        rebuildLifepathFromSelections();
+    };
+
+    const setRoleLifepathSelections = (selections: Record<string, number>) => {
+        roleLifepathSelections.value = { ...selections };
+        rebuildRoleLifepathFromSelections();
+    };
+
     const toThirdPerson = (value: string) => {
         let text = value;
         const replaceToken = (pattern: RegExp, replacement: string, replacementCapitalized: string) => {
@@ -402,6 +420,10 @@ export function useLifepath({ char, role }: UseLifepathOptions) {
         role_lifepath,
         lifepathSelectionsDisplay,
         roleLifepathSelectionsDisplay,
+        getLifepathSelections,
+        getRoleLifepathSelections,
+        setLifepathSelections,
+        setRoleLifepathSelections,
         updateLifepathSelection,
         updateRoleLifepathSelection,
         walkLifepath,

@@ -49,6 +49,12 @@ const creation_method = ref<CreationMethod>("edgerunner");
 const roleOptions = Object.values(Role) as Role[];
 const role = ref<Role>(roleOptions[Math.floor(Math.random() * roleOptions.length)]);
 const char = ref<Character>(new Character({ creation_method: creation_method.value, role: role.value })) // Initializes reactive variable for character.
+const skills_render_token = ref(0);
+const export_modal_visible = ref(false);
+const export_json = ref("");
+const import_modal_visible = ref(false);
+const import_json = ref("");
+const import_error = ref("");
 
 /**
  * Generate a full character based on the selected role and creation method.
@@ -79,6 +85,51 @@ function generateCharacter() {
     walkLifepath();
     walkRoleLifepath();
     randomizeHandle();
+}
+
+function openExportModal() {
+    const payload = {
+        version: 1,
+        character: char.value.toExportData(),
+        lifepathSelections: getLifepathSelections(),
+        roleLifepathSelections: getRoleLifepathSelections()
+    };
+    export_json.value = JSON.stringify(payload, null, 2);
+    export_modal_visible.value = true;
+}
+
+function openImportModal() {
+    import_error.value = "";
+    import_modal_visible.value = true;
+}
+
+function importCharacter() {
+    import_error.value = "";
+    try {
+        const parsed = JSON.parse(import_json.value);
+        const payload = parsed?.character ? parsed : { character: parsed };
+        if (!payload.character) {
+            throw new Error("Missing character data.");
+        }
+        const nextCharacter = Character.fromExportData(payload.character);
+        char.value = nextCharacter;
+        creation_method.value = nextCharacter.creation_method;
+        role.value = nextCharacter.role;
+        if (payload.lifepathSelections && typeof payload.lifepathSelections === "object") {
+            setLifepathSelections(payload.lifepathSelections);
+        } else {
+            walkLifepath();
+        }
+        if (payload.roleLifepathSelections && typeof payload.roleLifepathSelections === "object") {
+            setRoleLifepathSelections(payload.roleLifepathSelections);
+        } else {
+            walkRoleLifepath();
+        }
+        skills_render_token.value += 1;
+        import_modal_visible.value = false;
+    } catch (e: any) {
+        import_error.value = e?.message ?? "Import failed.";
+    }
 }
 
 //  ######  ##    ## #### ##       ##       
@@ -566,6 +617,10 @@ const {
     role_lifepath,
     lifepathSelectionsDisplay,
     roleLifepathSelectionsDisplay,
+    getLifepathSelections,
+    getRoleLifepathSelections,
+    setLifepathSelections,
+    setRoleLifepathSelections,
     updateLifepathSelection,
     updateRoleLifepathSelection,
     walkLifepath,
@@ -802,7 +857,7 @@ function updateSkillLevel(skill: Skill, level: number) {
 
 
 
-watch([char.value.skills, char.value.stats, sort_method, stats_block], () => {
+watch([() => char.value.skills, () => char.value.stats, sort_method, stats_block], () => {
     skillChunks.value = [...calculated_skills(sort_method.value)];
 }, { deep: true });
 
@@ -891,7 +946,9 @@ generateCharacter(); // Generates a character on page load.
                     <option value="complete">Complete Package (Calculated)</option>
                 </select>
             </div>
-            <div>
+            <div class="flex flex-wrap justify-end gap-2">
+                <CPButton @click="openExportModal">Export Character</CPButton>
+                <CPButton @click="openImportModal">Import Character</CPButton>
                 <CPButton @click="generateCharacter()">Generate Character</CPButton>
             </div>
         </CPTitle>
@@ -948,6 +1005,7 @@ generateCharacter(); // Generates a character on page load.
             <div class=" sm:columns-2 md:columns-3 columns-1 gap-1 bg-red-500 p-1">
                 <template v-if="sort_method === 'group'">
                     <SkillsByGroup :char="char" :editable="can_change_skills" :can-edit-skill="canEditSkill"
+                        :key="skills_render_token"
                         :min-level="minSkillLevel"
                         :can-increment="canIncrementSkill" :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
@@ -1464,6 +1522,35 @@ generateCharacter(); // Generates a character on page load.
                 <h2 class="text-lg font-bold">Role Lifepath Event</h2>
                 <p>{{ role_lifepath_modal_content }}</p>
                 <CPButton class="mt-4" @click="role_lifepath_modal_visible = false">Close</CPButton>
+            </div>
+        </Modal>
+        <Modal :visible="export_modal_visible" @close="export_modal_visible = false">
+            <div class="p-1">
+                <h2 class="text-lg font-bold">Export Character</h2>
+                <p class="mt-2 text-sm text-gray-600">Copy and store this JSON to share or back up your character.</p>
+                <textarea
+                    v-model="export_json"
+                    class="mt-4 h-64 w-full border-4 border-red-500 p-2 font-mono text-xs"
+                    readonly
+                ></textarea>
+                <div class="mt-4 flex justify-end">
+                    <CPButton @click="export_modal_visible = false">Close</CPButton>
+                </div>
+            </div>
+        </Modal>
+        <Modal :visible="import_modal_visible" @close="import_modal_visible = false">
+            <div class="p-1">
+                <h2 class="text-lg font-bold">Import Character</h2>
+                <p class="mt-2 text-sm text-gray-600">Paste a character JSON export to restore it.</p>
+                <textarea
+                    v-model="import_json"
+                    class="mt-4 h-64 w-full border-4 border-red-500 p-2 font-mono text-xs"
+                ></textarea>
+                <div v-if="import_error" class="mt-2 text-sm text-red-600">{{ import_error }}</div>
+                <div class="mt-4 flex justify-end gap-2">
+                    <CPButton @click="import_modal_visible = false">Cancel</CPButton>
+                    <CPButton @click="importCharacter">Import</CPButton>
+                </div>
             </div>
         </Modal>
         <Modal :visible="confirm_modal_visible" @close="closeConfirmModal">

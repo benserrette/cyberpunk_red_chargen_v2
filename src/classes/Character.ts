@@ -98,6 +98,49 @@ type OwnedGear = {
     item: GearItem;
     quantity: number;
 };
+type CyberwareExportEntry = {
+    name: string;
+    placeholder?: boolean;
+    options?: CyberwareExportEntry[];
+};
+type CharacterExportData = {
+    creation_method: CreationMethod;
+    role: Role;
+    handle: string;
+    first_name: string;
+    last_name: string;
+    role_ability_rank: number;
+    notes: string;
+    stats: Record<string, number>;
+    skills: Record<string, number>;
+    cash: number;
+    armor: {
+        head: string;
+        body: string;
+        shield: string;
+    };
+    weapons: {
+        name: string;
+        description?: string;
+        quality?: string;
+        ammo?: Record<string, number>;
+        attachments?: string[];
+    }[];
+    gear: {
+        name: string;
+        quantity: number;
+    }[];
+    programs: MiscItem[];
+    fashion_items: FashionItem[];
+    housing: string;
+    rent: number;
+    lifestyle: string;
+    fashion: string;
+    other_notes: string;
+    reputation: number;
+    reputation_events: string[];
+    cyberware: Record<string, CyberwareExportEntry | null>;
+};
 
 /**
  * Represents a full character sheet, including stats, gear, lifepath, and cash.
@@ -145,6 +188,232 @@ export class Character {
 
     lifepath: Lifepath = new Lifepath();
     role_lifepath: Lifepath | undefined = undefined;
+
+    private static serializeCyberwareEntry(cyberware: Cyberware): CyberwareExportEntry {
+        return {
+            name: cyberware.name,
+            placeholder: cyberware.placeholder || undefined,
+            options: cyberware.slotted_options.map((option) => Character.serializeCyberwareEntry(option))
+        };
+    }
+
+    private static buildCyberwareEntry(entry: CyberwareExportEntry): Cyberware | undefined {
+        const source = CyberwareList.find((item) => item.name === entry.name);
+        if (!source) {
+            return undefined;
+        }
+        const instance = new Cyberware({ ...source });
+        if (entry.options && entry.options.length > 0) {
+            instance.slotted_options = entry.options
+                .map((option) => Character.buildCyberwareEntry(option))
+                .filter((option): option is Cyberware => option !== undefined);
+        }
+        return instance;
+    }
+
+    private static placeholderTypeForLocation(location: string): CyberwareType {
+        if (location === BodyLocation.External) {
+            return CyberwareType.ExternalBodyCyberware;
+        }
+        if (location === BodyLocation.Fashionware) {
+            return CyberwareType.Fashionware;
+        }
+        if (location === BodyLocation.Borgware) {
+            return CyberwareType.Borgware;
+        }
+        return CyberwareType.InternalBodyCyberware;
+    }
+
+    /**
+     * Create a JSON-friendly snapshot of the character state.
+     */
+    toExportData(): CharacterExportData {
+        const skills: Record<string, number> = {};
+        for (const [key, skill] of Object.entries(this.skills)) {
+            skills[key] = skill.lvl;
+        }
+        const cyberware: Record<string, CyberwareExportEntry | null> = {};
+        for (const [location, entry] of Object.entries(this.cyberware)) {
+            cyberware[location] = entry ? Character.serializeCyberwareEntry(entry) : null;
+        }
+        return {
+            creation_method: this.creation_method,
+            role: this.role,
+            handle: this.handle,
+            first_name: this.first_name,
+            last_name: this.last_name,
+            role_ability_rank: this.role_ability_rank,
+            notes: this.notes,
+            stats: { ...this.stats },
+            skills,
+            cash: this.cash,
+            armor: {
+                head: this.armor.head === "None" ? "None" : this.armor.head.armor_type,
+                body: this.armor.body === "None" ? "None" : this.armor.body.armor_type,
+                shield: this.armor.shield === "None" ? "None" : this.armor.shield.armor_type
+            },
+            weapons: this.weapons.map((weapon) => ({
+                name: weapon.name,
+                description: weapon.description,
+                quality: weapon.quality,
+                ammo: { ...weapon.ammo },
+                attachments: weapon.attachments.map((attachment) => attachment.name)
+            })),
+            gear: this.gear.map((entry) => ({
+                name: entry.item.name,
+                quantity: entry.quantity
+            })),
+            programs: [...this.programs],
+            fashion_items: [...this.fashion_items],
+            housing: this.housing,
+            rent: this.rent,
+            lifestyle: this.lifestyle,
+            fashion: this.fashion,
+            other_notes: this.other_notes,
+            reputation: this.reputation,
+            reputation_events: [...this.reputation_events],
+            cyberware
+        };
+    }
+
+    /**
+     * Build a Character instance from exported data.
+     */
+    static fromExportData(data: CharacterExportData): Character {
+        const creation_method = data.creation_method ?? "street rat";
+        const role = data.role ?? Role.Civilian;
+        const character = new Character({ creation_method, role });
+        character.creation_method = creation_method;
+        character.setRole(role);
+        character.handle = data.handle ?? character.handle;
+        character.first_name = data.first_name ?? "";
+        character.last_name = data.last_name ?? "";
+        character.role_ability_rank = data.role_ability_rank ?? character.role_ability_rank;
+        character.notes = data.notes ?? "";
+        if (data.stats) {
+            for (const [stat, value] of Object.entries(data.stats)) {
+                character.stats[stat] = Number(value);
+            }
+        }
+        const applySkillLevel = (key: string, value: number) => {
+            const skill = character.skills[key];
+            if (skill) {
+                skill.lvl = Number(value);
+            }
+        };
+        if (Array.isArray((data as any).skills)) {
+            for (const entry of (data as any).skills) {
+                if (!entry) {
+                    continue;
+                }
+                const name = String(entry.name ?? entry.skill ?? "");
+                if (!name) {
+                    continue;
+                }
+                const key = Skill.genKey(name);
+                applySkillLevel(key, Number(entry.lvl ?? entry.level ?? 0));
+            }
+        } else if (data.skills) {
+            for (const [key, value] of Object.entries(data.skills)) {
+                const normalizedKey = character.skills[key] ? key : Skill.genKey(key);
+                applySkillLevel(normalizedKey, Number(value));
+            }
+        }
+        character.cash = data.cash ?? character.cash;
+        if (data.armor) {
+            const headArmor = data.armor.head;
+            const bodyArmor = data.armor.body;
+            const shieldArmor = data.armor.shield;
+            character.armor.head = headArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === headArmor) ?? "None");
+            character.armor.body = bodyArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === bodyArmor) ?? "None");
+            character.armor.shield = shieldArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === shieldArmor) ?? "None");
+        }
+        character.weapons = [];
+        if (data.weapons) {
+            const weaponCatalog = [...MeleeWeapons, ...RangedWeapons];
+            for (const entry of data.weapons) {
+                const base = weaponCatalog.find((weapon) => weapon.name === entry.name);
+                if (!base) {
+                    continue;
+                }
+                const weapon = new Weapon({
+                    ...base,
+                    description: entry.description ?? base.description,
+                    quality: entry.quality ?? base.quality,
+                    ammo: entry.ammo ?? {}
+                });
+                for (const attachmentName of entry.attachments ?? []) {
+                    const attachment = Object.values(WeaponAttachments).find((item) => item.name === attachmentName);
+                    if (attachment) {
+                        try {
+                            weapon.addAttachment(attachment);
+                        } catch (e) {
+                            console.warn(e);
+                        }
+                    }
+                }
+                character.weapons.push(weapon);
+            }
+        }
+        character.gear = [];
+        if (data.gear) {
+            for (const entry of data.gear) {
+                const gearItem = Object.values(Gear).find((item) => item.name === entry.name);
+                if (!gearItem) {
+                    continue;
+                }
+                const quantity = Math.max(1, Math.floor(entry.quantity ?? 1));
+                character.gear.push({ item: gearItem, quantity });
+            }
+        }
+        character.programs = [];
+        if (data.programs) {
+            for (const entry of data.programs) {
+                character.addMiscItem(character.programs, entry);
+            }
+        }
+        character.fashion_items = [];
+        if (data.fashion_items) {
+            for (const entry of data.fashion_items) {
+                character.addFashionItem(character.fashion_items, entry);
+            }
+        }
+        character.housing = data.housing ?? "";
+        character.rent = data.rent ?? 0;
+        character.lifestyle = data.lifestyle ?? "";
+        character.fashion = data.fashion ?? "";
+        character.other_notes = data.other_notes ?? "";
+        character.reputation = data.reputation ?? 0;
+        character.reputation_events = [...(data.reputation_events ?? [])];
+        character.resetCyberware();
+        if (data.cyberware) {
+            for (const [location, entry] of Object.entries(data.cyberware)) {
+                if (!entry) {
+                    character.cyberware[location] = undefined;
+                    continue;
+                }
+                if (entry.placeholder) {
+                    const placeholder = character.cyberware[location] ?? new Cyberware({
+                        name: entry.name,
+                        type: Character.placeholderTypeForLocation(location),
+                        body_location: [location],
+                        slots_available: 7,
+                        placeholder: true
+                    });
+                    placeholder.slotted_options = (entry.options ?? [])
+                        .map((option) => Character.buildCyberwareEntry(option))
+                        .filter((option): option is Cyberware => option !== undefined);
+                    character.cyberware[location] = placeholder;
+                    continue;
+                }
+                const built = Character.buildCyberwareEntry(entry);
+                if (built) {
+                    character.cyberware[location] = built;
+                }
+            }
+        }
+        return character;
+    }
 
     /**
      * Create a Character with a creation method and role, then reset state.
