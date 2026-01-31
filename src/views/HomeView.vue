@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import {
     Role,
     RequiredSkills,
@@ -49,12 +49,13 @@ const creation_method = ref<CreationMethod>("edgerunner");
 const roleOptions = Object.values(Role) as Role[];
 const role = ref<Role>(roleOptions[Math.floor(Math.random() * roleOptions.length)]);
 const char = ref<Character>(new Character({ creation_method: creation_method.value, role: role.value })) // Initializes reactive variable for character.
-const skills_render_token = ref(0);
-const export_modal_visible = ref(false);
-const export_json = ref("");
+const toast_visible = ref(false);
+const toast_message = ref("");
+let toast_timer: number | undefined = undefined;
 const import_modal_visible = ref(false);
 const import_json = ref("");
 const import_error = ref("");
+const import_textarea_ref = ref<HTMLTextAreaElement | null>(null);
 
 /**
  * Generate a full character based on the selected role and creation method.
@@ -87,20 +88,66 @@ function generateCharacter() {
     randomizeHandle();
 }
 
-function openExportModal() {
+function showToast(message: string) {
+    toast_message.value = message;
+    toast_visible.value = true;
+    if (toast_timer !== undefined) {
+        window.clearTimeout(toast_timer);
+    }
+    toast_timer = window.setTimeout(() => {
+        toast_visible.value = false;
+    }, 3000);
+}
+
+function isValidImportPayload(payload: any) {
+    if (!payload) {
+        return false;
+    }
+    if (payload.character) {
+        return typeof payload.character === "object" && payload.character !== null;
+    }
+    return typeof payload === "object";
+}
+
+async function copyExportToClipboard() {
     const payload = {
         version: 1,
         character: char.value.toExportData(),
         lifepathSelections: getLifepathSelections(),
         roleLifepathSelections: getRoleLifepathSelections()
     };
-    export_json.value = JSON.stringify(payload, null, 2);
-    export_modal_visible.value = true;
+    const json = JSON.stringify(payload, null, 2);
+    try {
+        await navigator.clipboard.writeText(json);
+        showToast("Character export copied to clipboard.");
+    } catch (e) {
+        console.error(e);
+        showToast("Could not copy export to clipboard.");
+    }
 }
 
-function openImportModal() {
+async function openImportModal() {
     import_error.value = "";
     import_modal_visible.value = true;
+    await nextTick();
+    if (import_textarea_ref.value) {
+        import_textarea_ref.value.focus();
+        import_textarea_ref.value.select();
+    }
+    try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (!clipboardText) {
+            return;
+        }
+        const parsed = JSON.parse(clipboardText);
+        if (isValidImportPayload(parsed)) {
+            import_json.value = clipboardText;
+            importCharacter();
+            return;
+        }
+    } catch (e) {
+        // Ignore clipboard read/parse errors; user can paste manually.
+    }
 }
 
 function importCharacter() {
@@ -111,10 +158,9 @@ function importCharacter() {
         if (!payload.character) {
             throw new Error("Missing character data.");
         }
-        const nextCharacter = Character.fromExportData(payload.character);
-        char.value = nextCharacter;
-        creation_method.value = nextCharacter.creation_method;
-        role.value = nextCharacter.role;
+        char.value.applyExportData(payload.character);
+        creation_method.value = char.value.creation_method;
+        role.value = char.value.role;
         if (payload.lifepathSelections && typeof payload.lifepathSelections === "object") {
             setLifepathSelections(payload.lifepathSelections);
         } else {
@@ -125,8 +171,8 @@ function importCharacter() {
         } else {
             walkRoleLifepath();
         }
-        skills_render_token.value += 1;
         import_modal_visible.value = false;
+        showToast("Character imported.");
     } catch (e: any) {
         import_error.value = e?.message ?? "Import failed.";
     }
@@ -947,7 +993,7 @@ generateCharacter(); // Generates a character on page load.
                 </select>
             </div>
             <div class="flex flex-wrap justify-end gap-2">
-                <CPButton @click="openExportModal">Export Character</CPButton>
+                <CPButton @click="copyExportToClipboard">Copy Export</CPButton>
                 <CPButton @click="openImportModal">Import Character</CPButton>
                 <CPButton @click="generateCharacter()">Generate Character</CPButton>
             </div>
@@ -1005,7 +1051,6 @@ generateCharacter(); // Generates a character on page load.
             <div class=" sm:columns-2 md:columns-3 columns-1 gap-1 bg-red-500 p-1">
                 <template v-if="sort_method === 'group'">
                     <SkillsByGroup :char="char" :editable="can_change_skills" :can-edit-skill="canEditSkill"
-                        :key="skills_render_token"
                         :min-level="minSkillLevel"
                         :can-increment="canIncrementSkill" :on-skill-update="updateSkillLevel" :max-level="6" />
                 </template>
@@ -1524,26 +1569,13 @@ generateCharacter(); // Generates a character on page load.
                 <CPButton class="mt-4" @click="role_lifepath_modal_visible = false">Close</CPButton>
             </div>
         </Modal>
-        <Modal :visible="export_modal_visible" @close="export_modal_visible = false">
-            <div class="p-1">
-                <h2 class="text-lg font-bold">Export Character</h2>
-                <p class="mt-2 text-sm text-gray-600">Copy and store this JSON to share or back up your character.</p>
-                <textarea
-                    v-model="export_json"
-                    class="mt-4 h-64 w-full border-4 border-red-500 p-2 font-mono text-xs"
-                    readonly
-                ></textarea>
-                <div class="mt-4 flex justify-end">
-                    <CPButton @click="export_modal_visible = false">Close</CPButton>
-                </div>
-            </div>
-        </Modal>
         <Modal :visible="import_modal_visible" @close="import_modal_visible = false">
             <div class="p-1">
                 <h2 class="text-lg font-bold">Import Character</h2>
                 <p class="mt-2 text-sm text-gray-600">Paste a character JSON export to restore it.</p>
                 <textarea
                     v-model="import_json"
+                    ref="import_textarea_ref"
                     class="mt-4 h-64 w-full border-4 border-red-500 p-2 font-mono text-xs"
                 ></textarea>
                 <div v-if="import_error" class="mt-2 text-sm text-red-600">{{ import_error }}</div>
@@ -1563,6 +1595,10 @@ generateCharacter(); // Generates a character on page load.
                 </div>
             </div>
         </Modal>
+
+        <div v-if="toast_visible" class="fixed right-4 top-4 z-50 border-4 border-red-500 bg-white px-4 py-2 text-sm font-bold text-black">
+            {{ toast_message }}
+        </div>
 
         <br /><br /><br />
 

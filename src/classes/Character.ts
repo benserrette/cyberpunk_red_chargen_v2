@@ -283,20 +283,31 @@ export class Character {
         const creation_method = data.creation_method ?? "street rat";
         const role = data.role ?? Role.Civilian;
         const character = new Character({ creation_method, role });
-        character.creation_method = creation_method;
-        character.setRole(role);
-        character.handle = data.handle ?? character.handle;
-        character.first_name = data.first_name ?? "";
-        character.last_name = data.last_name ?? "";
-        character.role_ability_rank = data.role_ability_rank ?? character.role_ability_rank;
-        character.notes = data.notes ?? "";
+        character.applyExportData(data);
+        return character;
+    }
+
+    /**
+     * Apply exported data onto an existing Character instance.
+     */
+    applyExportData(data: CharacterExportData) {
+        const creation_method = data.creation_method ?? "street rat";
+        const role = data.role ?? Role.Civilian;
+        this.reset({ creation_method, role });
+        this.creation_method = creation_method;
+        this.setRole(role);
+        this.handle = data.handle ?? this.handle;
+        this.first_name = data.first_name ?? "";
+        this.last_name = data.last_name ?? "";
+        this.role_ability_rank = data.role_ability_rank ?? this.role_ability_rank;
+        this.notes = data.notes ?? "";
         if (data.stats) {
             for (const [stat, value] of Object.entries(data.stats)) {
-                character.stats[stat] = Number(value);
+                this.stats[stat] = Number(value);
             }
         }
         const applySkillLevel = (key: string, value: number) => {
-            const skill = character.skills[key];
+            const skill = this.skills[key];
             if (skill) {
                 skill.lvl = Number(value);
             }
@@ -315,20 +326,20 @@ export class Character {
             }
         } else if (data.skills) {
             for (const [key, value] of Object.entries(data.skills)) {
-                const normalizedKey = character.skills[key] ? key : Skill.genKey(key);
+                const normalizedKey = this.skills[key] ? key : Skill.genKey(key);
                 applySkillLevel(normalizedKey, Number(value));
             }
         }
-        character.cash = data.cash ?? character.cash;
+        this.cash = data.cash ?? this.cash;
         if (data.armor) {
             const headArmor = data.armor.head;
             const bodyArmor = data.armor.body;
             const shieldArmor = data.armor.shield;
-            character.armor.head = headArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === headArmor) ?? "None");
-            character.armor.body = bodyArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === bodyArmor) ?? "None");
-            character.armor.shield = shieldArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === shieldArmor) ?? "None");
+            this.armor.head = headArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === headArmor) ?? "None");
+            this.armor.body = bodyArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === bodyArmor) ?? "None");
+            this.armor.shield = shieldArmor === "None" ? "None" : (ArmorList.find((armor) => armor.armor_type === shieldArmor) ?? "None");
         }
-        character.weapons = [];
+        this.weapons = [];
         if (data.weapons) {
             const weaponCatalog = [...MeleeWeapons, ...RangedWeapons];
             for (const entry of data.weapons) {
@@ -352,10 +363,10 @@ export class Character {
                         }
                     }
                 }
-                character.weapons.push(weapon);
+                this.weapons.push(weapon);
             }
         }
-        character.gear = [];
+        this.gear = [];
         if (data.gear) {
             for (const entry of data.gear) {
                 const gearItem = Object.values(Gear).find((item) => item.name === entry.name);
@@ -363,37 +374,37 @@ export class Character {
                     continue;
                 }
                 const quantity = Math.max(1, Math.floor(entry.quantity ?? 1));
-                character.gear.push({ item: gearItem, quantity });
+                this.gear.push({ item: gearItem, quantity });
             }
         }
-        character.programs = [];
+        this.programs = [];
         if (data.programs) {
             for (const entry of data.programs) {
-                character.addMiscItem(character.programs, entry);
+                this.addMiscItem(this.programs, entry);
             }
         }
-        character.fashion_items = [];
+        this.fashion_items = [];
         if (data.fashion_items) {
             for (const entry of data.fashion_items) {
-                character.addFashionItem(character.fashion_items, entry);
+                this.addFashionItem(this.fashion_items, entry);
             }
         }
-        character.housing = data.housing ?? "";
-        character.rent = data.rent ?? 0;
-        character.lifestyle = data.lifestyle ?? "";
-        character.fashion = data.fashion ?? "";
-        character.other_notes = data.other_notes ?? "";
-        character.reputation = data.reputation ?? 0;
-        character.reputation_events = [...(data.reputation_events ?? [])];
-        character.resetCyberware();
+        this.housing = data.housing ?? "";
+        this.rent = data.rent ?? 0;
+        this.lifestyle = data.lifestyle ?? "";
+        this.fashion = data.fashion ?? "";
+        this.other_notes = data.other_notes ?? "";
+        this.reputation = data.reputation ?? 0;
+        this.reputation_events = [...(data.reputation_events ?? [])];
+        this.resetCyberware();
         if (data.cyberware) {
             for (const [location, entry] of Object.entries(data.cyberware)) {
                 if (!entry) {
-                    character.cyberware[location] = undefined;
+                    this.cyberware[location] = undefined;
                     continue;
                 }
                 if (entry.placeholder) {
-                    const placeholder = character.cyberware[location] ?? new Cyberware({
+                    const placeholder = this.cyberware[location] ?? new Cyberware({
                         name: entry.name,
                         type: Character.placeholderTypeForLocation(location),
                         body_location: [location],
@@ -403,16 +414,15 @@ export class Character {
                     placeholder.slotted_options = (entry.options ?? [])
                         .map((option) => Character.buildCyberwareEntry(option))
                         .filter((option): option is Cyberware => option !== undefined);
-                    character.cyberware[location] = placeholder;
+                    this.cyberware[location] = placeholder;
                     continue;
                 }
                 const built = Character.buildCyberwareEntry(entry);
                 if (built) {
-                    character.cyberware[location] = built;
+                    this.cyberware[location] = built;
                 }
             }
         }
-        return character;
     }
 
     /**
